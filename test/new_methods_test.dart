@@ -9,7 +9,8 @@ void main() {
     const config = CsvConfig();
 
     test('trims whitespace from unquoted fields', () {
-      final result = decoder.decodeFlexible('  hello , world  \n  1 , 2 ', config);
+      final result =
+          decoder.decodeFlexible('  hello , world  \n  1 , 2 ', config);
       expect(result, [
         ['hello', 'world'],
         [1, 2],
@@ -60,11 +61,26 @@ void main() {
       ]);
     });
 
-    test('empty fields become 0', () {
-      final result = decoder.decodeIntegers('1,,3', config);
-      expect(result, [
+    test('empty fields throw unless emptyAs provides a fill', () {
+      expect(
+        () => decoder.decodeIntegers('1,,3', config),
+        throwsA(isA<CsvParseException>()),
+      );
+      final filled = decoder.decodeIntegers('1,,3', config, emptyAs: 0);
+      expect(filled, [
         [1, 0, 3],
       ]);
+    });
+
+    test('non-integer fields throw with row and column', () {
+      expect(
+        () => decoder.decodeIntegers('1,2\n3,x', config),
+        throwsA(
+          isA<CsvParseException>()
+              .having((e) => e.row, 'row', 1)
+              .having((e) => e.column, 'column', 1),
+        ),
+      );
     });
   });
 
@@ -80,9 +96,13 @@ void main() {
       ]);
     });
 
-    test('empty fields become 0.0', () {
-      final result = decoder.decodeDoubles('1.5,,3.5', config);
-      expect(result, [
+    test('empty fields throw unless emptyAs provides a fill', () {
+      expect(
+        () => decoder.decodeDoubles('1.5,,3.5', config),
+        throwsA(isA<CsvParseException>()),
+      );
+      final filled = decoder.decodeDoubles('1.5,,3.5', config, emptyAs: 0.0);
+      expect(filled, [
         [1.5, 0.0, 3.5],
       ]);
     });
@@ -107,10 +127,28 @@ void main() {
       ]);
     });
 
-    test('non-true values become false', () {
-      final result = decoder.decodeBooleans('yes,no,1,0', config);
+    test('accepts 1 and 0 from the documented truth table', () {
+      final result = decoder.decodeBooleans('1,0', config);
       expect(result, [
-        [false, false, false, false],
+        [true, false],
+      ]);
+    });
+
+    test('values outside the truth table throw', () {
+      expect(
+        () => decoder.decodeBooleans('yes,no', config),
+        throwsA(isA<CsvParseException>()),
+      );
+    });
+
+    test('empty fields throw unless emptyAs provides a fill', () {
+      expect(
+        () => decoder.decodeBooleans('true,', config),
+        throwsA(isA<CsvParseException>()),
+      );
+      final filled = decoder.decodeBooleans('true,', config, emptyAs: false);
+      expect(filled, [
+        [true, false],
       ]);
     });
   });

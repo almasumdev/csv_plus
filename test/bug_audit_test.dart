@@ -35,12 +35,12 @@ void main() {
     test('decode: unclosed quote mid-row', () {
       final result = typed.decode('"hello\n1,2');
       // First row: unclosed quote spans to LF (which is inside the quote)
-      // This is complex — at minimum it shouldn't crash
+      // This is complex; at minimum it shouldn't crash
       expect(result, isNotEmpty);
     });
 
     test('decodeStrings: single quote char only', () {
-      // Single " is an unclosed empty quoted field → empty string
+      // Single " is an unclosed empty quoted field, reads as empty string
       // With skipEmptyLines=true (default), all-empty row is skipped
       final result = decoder.decodeStrings('"', config);
       expect(result, isEmpty);
@@ -103,7 +103,7 @@ void main() {
           [1, 2, 3]
         ]
       ]);
-      // [1, 2, 3].toString() = "[1, 2, 3]" — contains comma, must be quoted
+      // [1, 2, 3].toString() = "[1, 2, 3]" contains a comma, must be quoted
       expect(result, contains('"'));
     });
 
@@ -113,7 +113,7 @@ void main() {
           {'a': 1}
         ]
       ]);
-      // {a: 1}.toString() = "{a: 1}" — no comma, no need to quote
+      // {a: 1}.toString() = "{a: 1}" has no comma, no need to quote
       // But just verify it doesn't break
       expect(result, isNotEmpty);
     });
@@ -130,6 +130,6 @@ void main() {
     // This is dart:io only, tested separately.
     // CsvFile.append checks File.exists() but not file.length > 0.
     // An empty existing file gets a leading newline.
-    // Marking as known issue — requires dart:io test.
+    // Marking as known issue; requires dart:io test.
   });
 }

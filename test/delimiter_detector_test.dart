@@ -1,4 +1,4 @@
-import 'package:csv_plus/csv_plus.dart';
+import 'package:csv_plus/decoder.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -68,8 +68,7 @@ void main() {
       });
 
       test('handles CRLF after sep hint', () {
-        final (remaining, sep) =
-            detector.checkSepHint('sep=;\r\na;b\r\n1;2');
+        final (remaining, sep) = detector.checkSepHint('sep=;\r\na;b\r\n1;2');
         expect(sep, ';');
         expect(remaining, 'a;b\r\n1;2');
       });
@@ -83,6 +82,31 @@ void main() {
       test('short input returns null', () {
         final (_, sep) = detector.checkSepHint('ab');
         expect(sep, null);
+      });
+    });
+
+    group('single-column guard', () {
+      test('semicolons inside prose do not win over the comma default', () {
+        // A real delimiter appears on every row; this one is missing from
+        // the first line, so the file is a single column.
+        final delim = detector.detectDelimiter('note\nhello; world\nsee; you');
+        expect(delim, ',');
+      });
+
+      test('a consistent semicolon on every line is detected', () {
+        expect(detector.detectDelimiter('a;b\nc;d\ne;f'), ';');
+      });
+
+      test('a single header-only line is detected', () {
+        expect(detector.detectDelimiter('a;b;c'), ';');
+      });
+
+      test('empty lines in the sample are ignored', () {
+        expect(detector.detectDelimiter('a;b\n\nc;d'), ';');
+      });
+
+      test('ambiguous mixed delimiters prefer the comma', () {
+        expect(detector.detectDelimiter('a,b;c\nd,e;f'), ',');
       });
     });
   });

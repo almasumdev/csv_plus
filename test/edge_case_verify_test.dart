@@ -182,7 +182,9 @@ void main() {
       final noSkip = CsvCodec(CsvConfig(skipEmptyLines: false));
       final result = noSkip.decodeStrings('a,b\n\nc,d');
       expect(result.length, 3);
-      expect(result[1], isEmpty);
+      // An empty line reads as one empty field, per RFC 4180 (csv 8 and
+      // fast_csv agree).
+      expect(result[1], ['']);
     });
   });
 

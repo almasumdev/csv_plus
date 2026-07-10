@@ -502,8 +502,11 @@ void main() {
     });
 
     test('single empty field', () {
-      final decoded = codec.decode('""');
-      expect(decoded, [
+      // A row of one empty field is an empty line per RFC 4180, so the
+      // default skipEmptyLines drops it; without skipping it reads [''].
+      expect(codec.decode('""'), isEmpty);
+      final keepEmpty = CsvCodec(CsvConfig(skipEmptyLines: false));
+      expect(keepEmpty.decode('""'), [
         [''],
       ]);
     });

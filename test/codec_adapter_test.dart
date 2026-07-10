@@ -22,8 +22,7 @@ void main() {
     });
 
     test('round-trip', () {
-      final adapter = CsvCodecAdapter(
-          const CsvConfig(dynamicTyping: false));
+      final adapter = CsvCodecAdapter(const CsvConfig(dynamicTyping: false));
       final original = [
         ['name', 'age'],
         ['Alice', '30'],

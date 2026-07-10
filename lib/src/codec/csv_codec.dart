@@ -51,7 +51,7 @@ class CsvCodec {
     final (remaining, sepDelim) = _detector.checkSepHint(bomStripped);
 
     if (sepDelim != null) {
-      // sep= hint found — strip that line and use the hinted delimiter
+      // sep= hint found: strip that line and use the hinted delimiter
       return (remaining, config.copyWith(fieldDelimiter: sepDelim));
     }
 
@@ -69,33 +69,20 @@ class CsvCodec {
   }
 
   /// Decode with first row as headers. Returns [CsvRow] objects.
+  ///
+  /// Header cells are read as raw strings (no type inference), so a
+  /// header like `01` keeps its name. Parses the input in a single pass.
   List<CsvRow> decodeWithHeaders(String input) {
     final (resolved, cfg) = _resolve(input);
-    final withHeader = cfg.hasHeader
-        ? cfg
-        : cfg.copyWith(hasHeader: true);
-    final rawRows = _fastDecoder.decode(resolved, withHeader);
+    final decoded = _fastDecoder.decodeWithHeaders(resolved, cfg);
 
-    // Extract headers from input
-    final headerConfig = const CsvConfig(
-      dynamicTyping: false,
-      hasHeader: false,
-      skipEmptyLines: true,
-    ).copyWith(
-      fieldDelimiter: cfg.fieldDelimiter,
-      quoteCharacter: cfg.quoteCharacter,
-      escapeCharacter: cfg.escapeCharacter,
-    );
-    final allRows = _fastDecoder.decodeStrings(resolved, headerConfig);
-    if (allRows.isEmpty) return [];
-
-    final headers = allRows.first;
+    final headers = decoded.headers;
     final headerMap = <String, int>{};
     for (var i = 0; i < headers.length; i++) {
       headerMap[headers[i]] = i;
     }
 
-    return rawRows.map((row) => CsvRow(row, headerMap)).toList();
+    return decoded.rows.map((row) => CsvRow(row, headerMap)).toList();
   }
 
   /// Decode all fields as strings (no type inference).
@@ -112,21 +99,31 @@ class CsvCodec {
   }
 
   /// Decode all fields as integers.
-  List<List<int>> decodeIntegers(String input) {
+  ///
+  /// Throws [CsvParseException] on any non-integer field. Empty fields
+  /// throw too, unless [emptyAs] provides an explicit fill value.
+  List<List<int>> decodeIntegers(String input, {int? emptyAs}) {
     final (resolved, cfg) = _resolve(input);
-    return _fastDecoder.decodeIntegers(resolved, cfg);
+    return _fastDecoder.decodeIntegers(resolved, cfg, emptyAs: emptyAs);
   }
 
   /// Decode all fields as doubles.
-  List<List<double>> decodeDoubles(String input) {
+  ///
+  /// Throws [CsvParseException] on any non-double field. Empty fields
+  /// throw too, unless [emptyAs] provides an explicit fill value.
+  List<List<double>> decodeDoubles(String input, {double? emptyAs}) {
     final (resolved, cfg) = _resolve(input);
-    return _fastDecoder.decodeDoubles(resolved, cfg);
+    return _fastDecoder.decodeDoubles(resolved, cfg, emptyAs: emptyAs);
   }
 
-  /// Decode all fields as booleans (`"true"` \u2192 `true`, everything else \u2192 `false`).
-  List<List<bool>> decodeBooleans(String input) {
+  /// Decode all fields as booleans.
+  ///
+  /// Truth table (case-insensitive): `true`/`1` and `false`/`0`. Anything
+  /// else throws [CsvParseException]. Empty fields throw too, unless
+  /// [emptyAs] provides an explicit fill value.
+  List<List<bool>> decodeBooleans(String input, {bool? emptyAs}) {
     final (resolved, cfg) = _resolve(input);
-    return _fastDecoder.decodeBooleans(resolved, cfg);
+    return _fastDecoder.decodeBooleans(resolved, cfg, emptyAs: emptyAs);
   }
 
   // ---------------------------------------------------------------------------
@@ -153,8 +150,15 @@ class CsvCodec {
   // ---------------------------------------------------------------------------
 
   /// Decode CSV string into a [CsvTable] with headers.
+  ///
+  /// The first row is always the header row and is read as raw strings;
+  /// data rows follow [CsvConfig.dynamicTyping]. Single pass.
   CsvTable decodeToTable(String input) {
-    return CsvTable.parse(input, config: config);
+    final (resolved, cfg) = _resolve(input);
+    final decoded = _fastDecoder.decodeWithHeaders(resolved, cfg);
+    // Both lists are freshly allocated by the decoder, so the no-copy
+    // constructor is safe here.
+    return CsvTable.internal(decoded.headers, decoded.rows);
   }
 
   // ---------------------------------------------------------------------------

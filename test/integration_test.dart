@@ -1,9 +1,10 @@
 import 'package:csv_plus/csv_plus.dart';
+import 'package:csv_plus/decoder.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('Round-trip integration', () {
-    test('encode → decode preserves data types', () {
+    test('encode then decode preserves data types', () {
       final codec = CsvCodec();
       final original = [
         ['name', 'age', 'score', 'active'],
@@ -16,7 +17,7 @@ void main() {
       expect(decoded, original);
     });
 
-    test('encode → decode with null values', () {
+    test('encode then decode with null values', () {
       final codec = CsvCodec();
       final original = [
         ['a', 'b'],
@@ -28,7 +29,7 @@ void main() {
       expect(decoded, original);
     });
 
-    test('encode → decode with quoted strings', () {
+    test('encode then decode with quoted strings', () {
       final codec = CsvCodec();
       final original = [
         ['has,comma', 'has"quote', 'has\nnewline'],
@@ -39,7 +40,7 @@ void main() {
       expect(decoded, original);
     });
 
-    test('encode strings → decode strings round-trip', () {
+    test('encode strings then decode strings round-trip', () {
       final codec = CsvCodec();
       final original = [
         ['Alice', '30', '95.5'],
@@ -67,7 +68,7 @@ void main() {
       }
     });
 
-    test('CsvTable fromMaps → toMaps round-trip', () {
+    test('CsvTable fromMaps then toMaps round-trip', () {
       final maps = [
         {'name': 'Alice', 'age': 30},
         {'name': 'Bob', 'age': 25},
@@ -77,7 +78,7 @@ void main() {
       expect(result, maps);
     });
 
-    test('stream encode → stream decode round-trip', () async {
+    test('stream encode then stream decode round-trip', () async {
       final config = const CsvConfig();
       final rows = [
         ['a', 'b'],
@@ -144,7 +145,7 @@ void main() {
   });
 
   group('TSV round-trip', () {
-    test('tab-separated encode → decode', () {
+    test('tab-separated encode then decode', () {
       final codec = CsvCodec.tsv();
       final data = [
         ['name', 'value'],
@@ -199,7 +200,7 @@ void main() {
   });
 
   group('CsvTable full workflow', () {
-    test('parse → filter → sort → export', () {
+    test('parse, filter, sort, export pipeline', () {
       final csv = 'name,age,city\nAlice,30,NYC\nBob,25,LA\nCharlie,35,NYC';
       final table = CsvTable.parse(csv);
 

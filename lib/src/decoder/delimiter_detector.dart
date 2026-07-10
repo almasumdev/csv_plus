@@ -10,9 +10,15 @@ class DelimiterDetector {
   /// Detect the most likely field delimiter from a sample string.
   ///
   /// Algorithm:
-  /// 1. Check for Excel `sep=X` hint on first line
-  /// 2. Score candidates by frequency and consistency across first 10 lines
-  /// 3. Return highest-scoring candidate, default `,`
+  /// 1. Check for an Excel `sep=X` hint on the first line.
+  /// 2. A candidate qualifies only when it appears (outside quotes) on
+  ///    every sampled non-empty line: a real delimiter shows up in every
+  ///    row, so single-column text that merely contains a `;` does not
+  ///    qualify.
+  /// 3. Qualifying candidates are ranked by count consistency across
+  ///    lines, then by column count; ties keep the earlier candidate
+  ///    (`,` before `;`, `\t`, `|`).
+  /// 4. When nothing qualifies, the default `,` is returned.
   String detectDelimiter(String sample) {
     final (stripped, sepDelim) = checkSepHint(stripBom(sample).$1);
     if (sepDelim != null) return sepDelim;
@@ -21,24 +27,34 @@ class DelimiterDetector {
     if (lines.isEmpty) return ',';
 
     var bestCandidate = ',';
-    var bestScore = -1;
+    var bestUniform = false;
+    var bestMinCount = 0;
 
     for (final candidate in _candidates) {
-      var score = 0;
-      var prevCount = -1;
+      var minCount = -1;
+      var maxCount = 0;
+      var qualifies = true;
 
       for (final line in lines) {
         final count = _countOutsideQuotes(line, candidate);
-        score += count;
-        if (prevCount >= 0 && count == prevCount && count > 0) {
-          score += 2; // consistency bonus
+        if (count == 0) {
+          qualifies = false;
+          break;
         }
-        prevCount = count;
+        if (minCount < 0 || count < minCount) minCount = count;
+        if (count > maxCount) maxCount = count;
       }
 
-      if (score > bestScore) {
-        bestScore = score;
+      if (!qualifies) continue;
+      final uniform = minCount == maxCount;
+
+      final better = bestMinCount == 0 ||
+          (uniform && !bestUniform) ||
+          (uniform == bestUniform && minCount > bestMinCount);
+      if (better) {
         bestCandidate = candidate;
+        bestUniform = uniform;
+        bestMinCount = minCount;
       }
     }
 
@@ -62,9 +78,10 @@ class DelimiterDetector {
     if (input.startsWith('sep=')) {
       final newlineIdx = input.indexOf('\n');
       final crIdx = input.indexOf('\r');
-      final endIdx = crIdx >= 0 && crIdx < (newlineIdx < 0 ? input.length : newlineIdx)
-          ? crIdx
-          : newlineIdx;
+      final endIdx =
+          crIdx >= 0 && crIdx < (newlineIdx < 0 ? input.length : newlineIdx)
+              ? crIdx
+              : newlineIdx;
 
       if (endIdx > 4) {
         final delimiter = input.substring(4, endIdx);
@@ -93,7 +110,7 @@ class DelimiterDetector {
         inQuotes = !inQuotes;
       } else if (!inQuotes && (ch == 10 || ch == 13)) {
         // \n or \r
-        lines.add(input.substring(start, i));
+        if (i > start) lines.add(input.substring(start, i));
         if (ch == 13 && i + 1 < input.length && input.codeUnitAt(i + 1) == 10) {
           i++;
         }

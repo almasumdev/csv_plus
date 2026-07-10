@@ -31,7 +31,21 @@ class CsvConfig {
   final bool hasHeader;
 
   /// Automatically parse numbers and booleans from string fields.
+  ///
+  /// Inference is guarded against silent data loss: values with leading
+  /// zeros (`007`), a leading plus sign (`+1`), surrounding whitespace,
+  /// or more than 15 digits stay strings, and quoted fields are never
+  /// inferred. See `FastDecoder.inferType` for the full rules.
   final bool dynamicTyping;
+
+  /// Throw [CsvParseException] on structurally malformed input instead of
+  /// recovering: a character after a closing quote, or an unterminated
+  /// quoted field at end of input.
+  ///
+  /// When `false` (the default), malformed quotes degrade gracefully:
+  /// text after a closing quote is appended to the field (Excel behavior)
+  /// and an unterminated quote consumes the rest of the input as content.
+  final bool strict;
 
   /// Transform each field after decoding.
   final dynamic Function(dynamic value, int index, String? header)?
@@ -57,6 +71,7 @@ class CsvConfig {
     this.skipEmptyLines = true,
     this.hasHeader = false,
     this.dynamicTyping = true,
+    this.strict = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -70,6 +85,7 @@ class CsvConfig {
     this.skipEmptyLines = true,
     this.hasHeader = false,
     this.dynamicTyping = true,
+    this.strict = false,
     this.decoderTransform,
     this.encoderTransform,
   })  : fieldDelimiter = ';',
@@ -87,6 +103,7 @@ class CsvConfig {
     this.skipEmptyLines = true,
     this.hasHeader = false,
     this.dynamicTyping = true,
+    this.strict = false,
     this.decoderTransform,
     this.encoderTransform,
   })  : fieldDelimiter = '\t',
@@ -103,6 +120,7 @@ class CsvConfig {
     this.skipEmptyLines = true,
     this.hasHeader = false,
     this.dynamicTyping = true,
+    this.strict = false,
     this.decoderTransform,
     this.encoderTransform,
   })  : fieldDelimiter = '|',
@@ -125,6 +143,7 @@ class CsvConfig {
     bool? skipEmptyLines,
     bool? hasHeader,
     bool? dynamicTyping,
+    bool? strict,
     dynamic Function(dynamic value, int index, String? header)?
         decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -141,6 +160,7 @@ class CsvConfig {
       skipEmptyLines: skipEmptyLines ?? this.skipEmptyLines,
       hasHeader: hasHeader ?? this.hasHeader,
       dynamicTyping: dynamicTyping ?? this.dynamicTyping,
+      strict: strict ?? this.strict,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );

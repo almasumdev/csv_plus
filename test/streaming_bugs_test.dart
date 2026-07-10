@@ -12,7 +12,7 @@ void main() {
     final decoder = CsvDecoder(config);
 
     test('escape split across two chunks', () async {
-      // Input: "hello\"world",next → field = hello"world
+      // Input: "hello\"world",next reads field = hello"world
       // Chunk 1 ends with \, chunk 2 starts with "
       final stream = Stream.fromIterable(['"hello\\', '"world",next']);
       final rows = await decoder.bind(stream).toList();

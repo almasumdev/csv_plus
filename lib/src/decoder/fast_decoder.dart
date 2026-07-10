@@ -1,4 +1,5 @@
 import '../core/csv_config.dart';
+import '../core/csv_exception.dart';
 
 // ASCII constants for hot-loop byte comparison
 const _lf = 10; // \n
@@ -29,12 +30,61 @@ const _lowerS = 115;
 /// - Type inference by first-byte detection
 /// - substring + replaceRange for quoted fields (avoids StringBuffer)
 /// - Row pre-sizing after first row for fewer allocations
+///
+/// ## Parsing semantics
+///
+/// All csv_plus decoders (this batch decoder, [decodeStrings], and the
+/// streaming `CsvDecoder`) implement one shared semantics:
+///
+/// - An empty line reads as a row with one empty field, per RFC 4180.
+///   With [CsvConfig.skipEmptyLines] (the default), rows consisting of a
+///   single empty field are dropped; rows of several empty fields (`,,`)
+///   are always kept.
+/// - Text after a closing quote is appended to the field, so `"a"x` reads
+///   `ax` (Excel behavior). With [CsvConfig.strict] it throws instead.
+/// - An unterminated quote consumes the rest of the input as field content
+///   (throws under [CsvConfig.strict]).
+/// - With [CsvConfig.hasHeader], the first surviving row is the header row.
+///   Header cells are read as raw strings: no type inference, no
+///   [CsvConfig.decoderTransform].
+/// - Quoted fields are never type-inferred; quoting opts a value out of
+///   [CsvConfig.dynamicTyping].
 class FastDecoder {
   /// Create a batch decoder instance (stateless, reusable).
   const FastDecoder();
 
   /// Decode CSV string with automatic type inference.
+  ///
+  /// When [CsvConfig.hasHeader] is set, the header row is consumed (its
+  /// names feed [CsvConfig.decoderTransform]) and only data rows are
+  /// returned. Use [decodeWithHeaders] to also get the header names.
   List<List<dynamic>> decode(String input, CsvConfig config) {
+    return _decodeTyped(input, config, null);
+  }
+
+  /// Decode CSV string, returning the header row and typed data rows in a
+  /// single pass.
+  ///
+  /// The first surviving row is always treated as the header row (as if
+  /// [CsvConfig.hasHeader] were set) and is returned as raw strings.
+  ({List<String> headers, List<List<dynamic>> rows}) decodeWithHeaders(
+    String input,
+    CsvConfig config,
+  ) {
+    final headers = <String>[];
+    final rows = _decodeTyped(
+      input,
+      config.hasHeader ? config : config.copyWith(hasHeader: true),
+      headers,
+    );
+    return (headers: headers, rows: rows);
+  }
+
+  List<List<dynamic>> _decodeTyped(
+    String input,
+    CsvConfig config,
+    List<String>? headerSink,
+  ) {
     if (input.isEmpty) return [];
 
     final bytes = input.codeUnits;
@@ -49,35 +99,46 @@ class FastDecoder {
     final dynamicTyping = config.dynamicTyping;
     final transform = config.decoderTransform;
     final hasHeader = config.hasHeader;
-    final hasTransform = transform != null;
+    final strict = config.strict;
 
     final rows = <List<dynamic>>[];
     List<String>? headers;
+    var headerDone = false;
     var cursor = 0;
     var colCount = -1;
+    var rowIndex = 0;
 
     // Strip BOM
     if (len > 0 && bytes[0] == _bom) cursor = 1;
 
     outerLoop:
     while (cursor < len) {
-      // Check for empty line
+      // Fast path: zero-length line skipped under skipEmptyLines. When not
+      // skipping, fall through so the cell loop reads it as one empty field.
       final rowCh = bytes[cursor];
       if (rowCh <= _cr && (rowCh == _cr || rowCh == _lf)) {
-        cursor++;
-        if (rowCh == _cr && cursor < len && bytes[cursor] == _lf) cursor++;
-        if (!skipEmpty) rows.add(<dynamic>[]);
-        continue outerLoop;
+        if (skipEmpty) {
+          cursor++;
+          if (rowCh == _cr && cursor < len && bytes[cursor] == _lf) cursor++;
+          rowIndex++;
+          continue outerLoop;
+        }
       }
 
-      final currentRow =
-          colCount > 0 ? List<dynamic>.generate(colCount, (_) => null, growable: true) : <dynamic>[];
+      final isHeaderRow = hasHeader && !headerDone;
+      final rowTyping = dynamicTyping && !isHeaderRow;
+      final rowTransform = isHeaderRow ? null : transform;
+      final hasTransform = rowTransform != null;
+
+      final currentRow = colCount > 0
+          ? List<dynamic>.generate(colCount, (_) => null, growable: true)
+          : <dynamic>[];
       var cellIdx = 0;
 
       // Read cells in this row
       while (true) {
         if (cursor >= len) {
-          _addCell(currentRow, cellIdx, colCount, dynamicTyping ? null : '');
+          _addCell(currentRow, cellIdx, colCount, rowTyping ? null : '');
           cellIdx++;
           break;
         }
@@ -85,7 +146,7 @@ class FastDecoder {
         final ch = bytes[cursor];
 
         if (ch <= _cr && (ch == _cr || ch == _lf)) {
-          _addCell(currentRow, cellIdx, colCount, dynamicTyping ? null : '');
+          _addCell(currentRow, cellIdx, colCount, rowTyping ? null : '');
           cellIdx++;
           cursor++;
           if (ch == _cr && cursor < len && bytes[cursor] == _lf) cursor++;
@@ -113,21 +174,61 @@ class FastDecoder {
               cursor++;
             }
           }
-          String value = input.substring(
-              start, closed ? cursor - 1 : cursor);
+          if (!closed && strict) {
+            throw CsvParseException(
+              'Unterminated quoted field',
+              row: rowIndex,
+              column: cellIdx,
+              offset: start - 1,
+            );
+          }
+          String value = input.substring(start, closed ? cursor - 1 : cursor);
           if (escapePositions != null) {
             for (var i = escapePositions.length - 1; i >= 0; i--) {
               value = value.replaceRange(
                   escapePositions[i], escapePositions[i] + 1, '');
             }
           }
+          // Text after the closing quote up to the next boundary is
+          // appended to the field (Excel behavior); strict mode throws.
+          if (closed && cursor < len) {
+            final after = bytes[cursor];
+            final atBoundary = (after <= _cr &&
+                    (after == _cr || after == _lf)) ||
+                (singleCharDelim
+                    ? after == firstDelim
+                    : _matchDelim(bytes, cursor, delimBytes, delimLen, len));
+            if (!atBoundary) {
+              if (strict) {
+                throw CsvParseException(
+                  'Unexpected character after closing quote',
+                  row: rowIndex,
+                  column: cellIdx,
+                  offset: cursor,
+                );
+              }
+              final junkStart = cursor;
+              while (cursor < len) {
+                final c = bytes[cursor];
+                if (c == firstDelim) {
+                  if (singleCharDelim ||
+                      _matchDelim(bytes, cursor, delimBytes, delimLen, len)) {
+                    break;
+                  }
+                } else if (c <= _cr && (c == _lf || c == _cr)) {
+                  break;
+                }
+                cursor++;
+              }
+              value = value + input.substring(junkStart, cursor);
+            }
+          }
           dynamic cell = value;
           if (hasTransform) {
-            final hdr =
-                (headers != null && cellIdx < headers.length)
-                    ? headers[cellIdx]
-                    : null;
-            cell = transform(cell, cellIdx, hdr);
+            final hdr = (headers != null && cellIdx < headers.length)
+                ? headers[cellIdx]
+                : null;
+            cell = rowTransform(cell, cellIdx, hdr);
           }
           _addCell(currentRow, cellIdx, colCount, cell);
           cellIdx++;
@@ -135,17 +236,16 @@ class FastDecoder {
             ? ch == firstDelim
             : _matchDelim(bytes, cursor, delimBytes, delimLen, len)) {
           // --- Empty field (consecutive delimiter) ---
-          dynamic cell = dynamicTyping ? null : '';
+          dynamic cell = rowTyping ? null : '';
           if (hasTransform) {
-            final hdr =
-                (headers != null && cellIdx < headers.length)
-                    ? headers[cellIdx]
-                    : null;
-            cell = transform(cell, cellIdx, hdr);
+            final hdr = (headers != null && cellIdx < headers.length)
+                ? headers[cellIdx]
+                : null;
+            cell = rowTransform(cell, cellIdx, hdr);
           }
           _addCell(currentRow, cellIdx, colCount, cell);
           cellIdx++;
-        } else if (dynamicTyping && (ch == _lowerT || ch == _lowerF)) {
+        } else if (rowTyping && (ch == _lowerT || ch == _lowerF)) {
           // --- Try boolean by individual byte check ---
           var matched = false;
           if (ch == _lowerT) {
@@ -159,16 +259,14 @@ class FastDecoder {
                   bytes[after] == _lf ||
                   (singleCharDelim
                       ? bytes[after] == firstDelim
-                      : _matchDelim(
-                          bytes, after, delimBytes, delimLen, len))) {
+                      : _matchDelim(bytes, after, delimBytes, delimLen, len))) {
                 dynamic cell = true;
                 cursor += 4;
                 if (hasTransform) {
-                  final hdr =
-                      (headers != null && cellIdx < headers.length)
-                          ? headers[cellIdx]
-                          : null;
-                  cell = transform(cell, cellIdx, hdr);
+                  final hdr = (headers != null && cellIdx < headers.length)
+                      ? headers[cellIdx]
+                      : null;
+                  cell = rowTransform(cell, cellIdx, hdr);
                 }
                 _addCell(currentRow, cellIdx, colCount, cell);
                 cellIdx++;
@@ -187,16 +285,14 @@ class FastDecoder {
                   bytes[after] == _lf ||
                   (singleCharDelim
                       ? bytes[after] == firstDelim
-                      : _matchDelim(
-                          bytes, after, delimBytes, delimLen, len))) {
+                      : _matchDelim(bytes, after, delimBytes, delimLen, len))) {
                 dynamic cell = false;
                 cursor += 5;
                 if (hasTransform) {
-                  final hdr =
-                      (headers != null && cellIdx < headers.length)
-                          ? headers[cellIdx]
-                          : null;
-                  cell = transform(cell, cellIdx, hdr);
+                  final hdr = (headers != null && cellIdx < headers.length)
+                      ? headers[cellIdx]
+                      : null;
+                  cell = rowTransform(cell, cellIdx, hdr);
                 }
                 _addCell(currentRow, cellIdx, colCount, cell);
                 cellIdx++;
@@ -212,8 +308,7 @@ class FastDecoder {
               final c = bytes[cursor];
               if (c == firstDelim) {
                 if (singleCharDelim ||
-                    _matchDelim(
-                        bytes, cursor, delimBytes, delimLen, len)) {
+                    _matchDelim(bytes, cursor, delimBytes, delimLen, len)) {
                   break;
                 }
               } else if (c <= _cr && (c == _lf || c == _cr)) {
@@ -223,29 +318,35 @@ class FastDecoder {
             }
             dynamic cell = input.substring(start, cursor);
             if (hasTransform) {
-              final hdr =
-                  (headers != null && cellIdx < headers.length)
-                      ? headers[cellIdx]
-                      : null;
-              cell = transform(cell, cellIdx, hdr);
+              final hdr = (headers != null && cellIdx < headers.length)
+                  ? headers[cellIdx]
+                  : null;
+              cell = rowTransform(cell, cellIdx, hdr);
             }
             _addCell(currentRow, cellIdx, colCount, cell);
             cellIdx++;
           }
-        } else if (dynamicTyping &&
+        } else if (rowTyping &&
             (ch == _minus || (ch >= _zero && ch <= _nine))) {
           // --- Number (int or double) ---
           final start = cursor;
+          // Data-loss guard: a multi-digit run starting with 0 stays text
+          // (007 is an identifier, not the number 7).
+          final digitIdx = ch == _minus ? cursor + 1 : cursor;
+          final zeroLed = digitIdx + 1 < len &&
+              bytes[digitIdx] == _zero &&
+              bytes[digitIdx + 1] >= _zero &&
+              bytes[digitIdx + 1] <= _nine;
           var isDouble = false;
           cursor++;
           while (cursor < len) {
             final c = bytes[cursor];
-            if (c == _dot || c == _lowerE || c == _upperE) {
+            if (c >= _zero && c <= _nine) {
+              cursor++;
+            } else if (c == _dot || c == _lowerE || c == _upperE) {
               isDouble = true;
               cursor++;
             } else if (c == _plus || c == _minus) {
-              cursor++;
-            } else if (c >= _zero && c <= _nine) {
               cursor++;
             } else {
               break;
@@ -258,25 +359,31 @@ class FastDecoder {
                   (bytes[cursor] == _cr || bytes[cursor] == _lf)) ||
               (singleCharDelim
                   ? bytes[cursor] == firstDelim
-                  : _matchDelim(
-                      bytes, cursor, delimBytes, delimLen, len));
+                  : _matchDelim(bytes, cursor, delimBytes, delimLen, len));
 
           dynamic cell;
-          if (atBoundary) {
+          if (atBoundary && !zeroLed) {
             final numStr = input.substring(start, cursor);
             if (isDouble) {
-              cell = double.tryParse(numStr) ?? numStr;
+              // Non-finite results (1e999) would corrupt the value.
+              final d = double.tryParse(numStr);
+              cell = (d != null && d.isFinite) ? d : numStr;
+            } else if (cursor - start - (ch == _minus ? 1 : 0) > 15) {
+              // Data-loss guard: past 15 digits, web (and Excel) precision
+              // is not exact, so long digit runs stay text everywhere.
+              // Mid-string signs can overcount the length, but those
+              // strings fail int.tryParse and stay text regardless.
+              cell = numStr;
             } else {
               cell = int.tryParse(numStr) ?? numStr;
             }
           } else {
-            // Non-numeric chars follow — rescan as unquoted string
+            // Not a clean number: rescan to the boundary as a string
             while (cursor < len) {
               final c = bytes[cursor];
               if (c == firstDelim) {
                 if (singleCharDelim ||
-                    _matchDelim(
-                        bytes, cursor, delimBytes, delimLen, len)) {
+                    _matchDelim(bytes, cursor, delimBytes, delimLen, len)) {
                   break;
                 }
               } else if (c <= _cr && (c == _lf || c == _cr)) {
@@ -287,11 +394,10 @@ class FastDecoder {
             cell = input.substring(start, cursor);
           }
           if (hasTransform) {
-            final hdr =
-                (headers != null && cellIdx < headers.length)
-                    ? headers[cellIdx]
-                    : null;
-            cell = transform(cell, cellIdx, hdr);
+            final hdr = (headers != null && cellIdx < headers.length)
+                ? headers[cellIdx]
+                : null;
+            cell = rowTransform(cell, cellIdx, hdr);
           }
           _addCell(currentRow, cellIdx, colCount, cell);
           cellIdx++;
@@ -303,8 +409,7 @@ class FastDecoder {
             final c = bytes[cursor];
             if (c == firstDelim) {
               if (singleCharDelim ||
-                  _matchDelim(
-                      bytes, cursor, delimBytes, delimLen, len)) {
+                  _matchDelim(bytes, cursor, delimBytes, delimLen, len)) {
                 break;
               }
             } else if (c <= _cr && (c == _lf || c == _cr)) {
@@ -314,11 +419,10 @@ class FastDecoder {
           }
           dynamic cell = input.substring(start, cursor);
           if (hasTransform) {
-            final hdr =
-                (headers != null && cellIdx < headers.length)
-                    ? headers[cellIdx]
-                    : null;
-            cell = transform(cell, cellIdx, hdr);
+            final hdr = (headers != null && cellIdx < headers.length)
+                ? headers[cellIdx]
+                : null;
+            cell = rowTransform(cell, cellIdx, hdr);
           }
           _addCell(currentRow, cellIdx, colCount, cell);
           cellIdx++;
@@ -340,15 +444,24 @@ class FastDecoder {
         }
       }
 
-      // Trim pre-sized row if fewer cells than expected
-      final row =
-          (colCount > 0 && cellIdx < colCount)
-              ? currentRow.sublist(0, cellIdx)
-              : currentRow;
+      rowIndex++;
 
-      if (hasHeader && headers == null) {
-        headers = row.map((e) => e?.toString() ?? '').toList();
+      // Trim pre-sized row if fewer cells than expected
+      final row = (colCount > 0 && cellIdx < colCount)
+          ? currentRow.sublist(0, cellIdx)
+          : currentRow;
+
+      // A row of a single empty field is an empty line per RFC 4180.
+      if (skipEmpty && cellIdx == 1) {
+        final only = row[0];
+        if (only == null || only == '') continue;
+      }
+
+      if (isHeaderRow) {
+        headers = List<String>.generate(row.length, (i) => row[i] as String);
+        headerDone = true;
         colCount = headers.length;
+        headerSink?.addAll(headers);
         continue;
       }
 
@@ -360,6 +473,11 @@ class FastDecoder {
   }
 
   /// Decode all fields as strings (no type inference overhead).
+  ///
+  /// Follows the same structural semantics as [decode] (empty lines,
+  /// quote handling, [CsvConfig.skipEmptyLines], [CsvConfig.hasHeader],
+  /// [CsvConfig.strict]); it only skips typing and
+  /// [CsvConfig.decoderTransform].
   List<List<String>> decodeStrings(String input, CsvConfig config) {
     if (input.isEmpty) return [];
 
@@ -372,28 +490,34 @@ class FastDecoder {
     final quoteCode = config.quoteCharacter.codeUnitAt(0);
     final escapeCode = config.escapeCharacter.codeUnitAt(0);
     final skipEmpty = config.skipEmptyLines;
+    final hasHeader = config.hasHeader;
+    final strict = config.strict;
 
     final rows = <List<String>>[];
+    var headerDone = false;
     var cursor = 0;
     var colCount = -1;
+    var rowIndex = 0;
 
     if (len > 0 && bytes[0] == _bom) cursor = 1;
 
     while (cursor < len) {
-      // Check for empty line at row start
+      // Fast path: zero-length line skipped under skipEmptyLines. When not
+      // skipping, fall through so the cell loop reads it as one empty field.
       final rowCh = bytes[cursor];
       if (rowCh <= _cr && (rowCh == _cr || rowCh == _lf)) {
-        cursor++;
-        if (rowCh == _cr && cursor < len && bytes[cursor] == _lf) cursor++;
-        if (!skipEmpty) rows.add(<String>[]);
-        continue;
+        if (skipEmpty) {
+          cursor++;
+          if (rowCh == _cr && cursor < len && bytes[cursor] == _lf) cursor++;
+          rowIndex++;
+          continue;
+        }
       }
 
       final currentRow = colCount > 0
           ? List<String>.generate(colCount, (_) => '', growable: true)
           : <String>[];
       var cellIdx = 0;
-      var rowIsEmpty = skipEmpty; // false when skipEmpty is off → skip tracking
 
       while (true) {
         if (cursor >= len) {
@@ -433,15 +557,55 @@ class FastDecoder {
               cursor++;
             }
           }
-          String value = input.substring(
-              start, closed ? cursor - 1 : cursor);
+          if (!closed && strict) {
+            throw CsvParseException(
+              'Unterminated quoted field',
+              row: rowIndex,
+              column: cellIdx,
+              offset: start - 1,
+            );
+          }
+          String value = input.substring(start, closed ? cursor - 1 : cursor);
           if (escapePositions != null) {
             for (var i = escapePositions.length - 1; i >= 0; i--) {
               value = value.replaceRange(
                   escapePositions[i], escapePositions[i] + 1, '');
             }
           }
-          if (rowIsEmpty && value.isNotEmpty) rowIsEmpty = false;
+          // Text after the closing quote up to the next boundary is
+          // appended to the field (Excel behavior); strict mode throws.
+          if (closed && cursor < len) {
+            final after = bytes[cursor];
+            final atBoundary = (after <= _cr &&
+                    (after == _cr || after == _lf)) ||
+                (singleCharDelim
+                    ? after == firstDelim
+                    : _matchDelim(bytes, cursor, delimBytes, delimLen, len));
+            if (!atBoundary) {
+              if (strict) {
+                throw CsvParseException(
+                  'Unexpected character after closing quote',
+                  row: rowIndex,
+                  column: cellIdx,
+                  offset: cursor,
+                );
+              }
+              final junkStart = cursor;
+              while (cursor < len) {
+                final c = bytes[cursor];
+                if (c == firstDelim) {
+                  if (singleCharDelim ||
+                      _matchDelim(bytes, cursor, delimBytes, delimLen, len)) {
+                    break;
+                  }
+                } else if (c <= _cr && (c == _lf || c == _cr)) {
+                  break;
+                }
+                cursor++;
+              }
+              value = value + input.substring(junkStart, cursor);
+            }
+          }
           _addStr(currentRow, cellIdx, colCount, value);
           cellIdx++;
         } else {
@@ -460,7 +624,6 @@ class FastDecoder {
             cursor++;
           }
           final value = input.substring(start, cursor);
-          if (rowIsEmpty && value.isNotEmpty) rowIsEmpty = false;
           _addStr(currentRow, cellIdx, colCount, value);
           cellIdx++;
         }
@@ -481,11 +644,20 @@ class FastDecoder {
         }
       }
 
-      if (rowIsEmpty) continue;
+      rowIndex++;
 
       final row = (colCount > 0 && cellIdx < colCount)
           ? currentRow.sublist(0, cellIdx)
           : currentRow;
+
+      // A row of a single empty field is an empty line per RFC 4180.
+      if (skipEmpty && cellIdx == 1 && row[0].isEmpty) continue;
+
+      if (hasHeader && !headerDone) {
+        headerDone = true;
+        colCount = row.length;
+        continue;
+      }
 
       if (colCount < 0) colCount = cellIdx;
       rows.add(row);
@@ -536,44 +708,59 @@ class FastDecoder {
   }
 
   /// Infer a dynamic type from a string value.
+  ///
+  /// This is the shared inference used by every typed decode path. Rules:
+  ///
+  /// - `''` reads as `null`; `true`/`false` (lowercase only) read as bool.
+  /// - Integers and doubles (including scientific notation) are parsed.
+  /// - Data-loss guards keep identifier-like values as text: leading zeros
+  ///   (`007`), a leading plus sign (`+1`), surrounding whitespace, digit
+  ///   runs longer than 15 (exact on VM but not on the web), and values
+  ///   that would parse to a non-finite double (`1e999`).
   static dynamic inferType(String value) {
     if (value.isEmpty) return null;
     if (value == 'true') return true;
     if (value == 'false') return false;
 
     final bytes = value.codeUnits;
+    final len = bytes.length;
+    final first = bytes[0];
+    if (first != _minus && (first < _zero || first > _nine)) return value;
+
     var hasDot = false;
     var hasExp = false;
-    var isNumeric = true;
-
-    for (var i = 0; i < bytes.length; i++) {
+    var digits = 0;
+    for (var i = 0; i < len; i++) {
       final c = bytes[i];
-      if (c >= _zero && c <= _nine) continue;
-      if (c == _minus && i == 0) continue;
-      if (c == _dot && !hasDot) {
+      if (c >= _zero && c <= _nine) {
+        digits++;
+      } else if (c == _dot) {
         hasDot = true;
-        continue;
-      }
-      if ((c == _lowerE || c == _upperE) && !hasExp && i > 0) {
+      } else if (c == _lowerE || c == _upperE) {
+        if (i == 0) return value;
         hasExp = true;
-        continue;
-      }
-      if ((c == _plus || c == _minus) && hasExp) continue;
-      isNumeric = false;
-      break;
-    }
-
-    if (isNumeric && bytes.isNotEmpty) {
-      if (hasDot || hasExp) {
-        final d = double.tryParse(value);
-        if (d != null) return d;
+      } else if (c == _plus || c == _minus) {
+        // Sign characters are validated by the final parse.
       } else {
-        final n = int.tryParse(value);
-        if (n != null) return n;
+        return value;
       }
     }
 
-    return value;
+    // Data-loss guard: a multi-digit run starting with 0 stays text.
+    final digitIdx = first == _minus ? 1 : 0;
+    if (digitIdx + 1 < len &&
+        bytes[digitIdx] == _zero &&
+        bytes[digitIdx + 1] >= _zero &&
+        bytes[digitIdx + 1] <= _nine) {
+      return value;
+    }
+
+    if (hasDot || hasExp) {
+      final d = double.tryParse(value);
+      return (d != null && d.isFinite) ? d : value;
+    }
+    if (digits > 15) return value;
+    return int.tryParse(value) ?? value;
   }
 
   // Add cell to pre-sized or growing row
