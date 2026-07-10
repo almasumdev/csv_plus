@@ -13,15 +13,13 @@
 
 include: package:lints/recommended.yaml
 
-# Uncomment the following section to specify additional rules.
-
-# linter:
-#   rules:
-#     - camel_case_types
-
-# analyzer:
-#   exclude:
-#     - path/to/excluded/files/**
+analyzer:
+  exclude:
+    # A separate package with its own pubspec and third-party deps
+    # (csv, fast_csv, serial_csv), analyzed on its own, not as part of
+    # the root package. Excluding it keeps unresolved-import errors out
+    # of the library's analysis gate. It is dev-only and .pubignore'd.
+    - benchmark/**
 
 # For more information about the core and recommended set of lints, see
 # https://dart.dev/go/core-lints
