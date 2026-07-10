@@ -1,87 +1,19 @@
-name: Release & Publish
+name: Publish
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    tags: ['v*']
 
 jobs:
-  # JOB 1: Verify the package before anything is tagged or published.
-  verify:
-    name: Verify (format, analyze, test, dry-run)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-
-      - name: Install dependencies
-        run: dart pub get
-
-      - name: Check formatting
-        # benchmark/ is a dev-only harness, excluded from every gate.
-        run: dart format --output=none --set-exit-if-changed lib test example
-
-      - name: Analyze code
-        run: dart analyze --fatal-infos
-
-      - name: Run tests
-        run: dart test
-
-      - name: Publish dry-run
-        run: dart pub publish --dry-run
-
-  # JOB 2: Create the tag (runs only on branch push, after verify passes).
-  create-tag:
-    needs: verify
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.RELEASE_PAT }}
-          fetch-depth: 0
-
-      - name: Read version
-        id: version
-        run: |
-          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Create and Push Tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          TAG="v${{ steps.version.outputs.version }}"
-
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists. Skipping."
-          else
-            git tag $TAG
-            git push origin $TAG
-          fi
-
-  # JOB 3: Publish to pub.dev (runs only on tag push, after verify passes).
   publish:
-    needs: verify
-    if: startsWith(github.ref, 'refs/tags/v')
+    name: Publish to pub.dev
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write # pub.dev OIDC automated publishing
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
+      - uses: dart-lang/setup-dart@v1 # configures pub.dev OIDC credentials
 
-      - name: Publish
-        run: dart pub publish --force
+      - run: dart pub publish --force

@@ -14,3 +14,9 @@ doc/api/
 
 # Benchmark build artifacts
 *.exe
+
+# Claude Code local guidance (not tracked, not published)
+CLAUDE.md
+
+# Superseded by CLAUDE.md
+.github/copilot-instructions.md
