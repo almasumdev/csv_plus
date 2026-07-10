@@ -6,8 +6,36 @@ on:
     tags: [ 'v*' ]
 
 jobs:
-  # JOB 1: Create the tag (Runs only on branch push)
+  # JOB 1: Verify the package before anything is tagged or published.
+  verify:
+    name: Verify (format, analyze, test, dry-run)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze code
+        run: dart analyze --fatal-infos
+
+      - name: Run tests
+        run: dart test
+
+      - name: Publish dry-run
+        run: dart pub publish --dry-run
+
+  # JOB 2: Create the tag (runs only on branch push, after verify passes).
   create-tag:
+    needs: verify
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -28,9 +56,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           TAG="v${{ steps.version.outputs.version }}"
-          
+
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists. Skipping."
           else
@@ -38,13 +66,14 @@ jobs:
             git push origin $TAG
           fi
 
-  # JOB 2: Publish to Pub.dev (Runs only on tag push)
+  # JOB 3: Publish to pub.dev (runs only on tag push, after verify passes).
   publish:
+    needs: verify
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      id-token: write # pub.dev OIDC automated publishing
     steps:
       - uses: actions/checkout@v4
 

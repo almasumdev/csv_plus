@@ -4,12 +4,44 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 jobs:
   analyze:
-    name: Analyze & Test
+    name: Analyze & Test (${{ matrix.sdk }})
     runs-on: ubuntu-latest
-    
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: [stable, 3.5.0]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Check formatting
+        if: matrix.sdk == 'stable'
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze code
+        run: dart analyze --fatal-infos
+
+      - name: Run tests
+        run: dart test
+
+  wasm:
+    name: Wasm compile smoke
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,11 +54,23 @@ jobs:
       - name: Install dependencies
         run: dart pub get
 
-      - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed .
+      - name: Compile example to wasm
+        run: dart compile wasm example/csv_plus_example.dart -o /tmp/smoke.wasm
 
-      - name: Analyze code
-        run: dart analyze
+  pana:
+    name: Pana score
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Run tests
-        run: dart test
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install pana
+        run: dart pub global activate pana
+
+      - name: Run pana (require full score)
+        run: dart pub global run pana --no-warning --exit-code-threshold 0 .
