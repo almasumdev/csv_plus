@@ -13,6 +13,10 @@ topics:
   - data-processing
   - file-handling
 
+screenshots:
+  - description: The csv_plus logo.
+    path: images/logo.png
+
 environment:
   # Floor is 3.8.0 because the dev toolchain (lints ^6) requires it, so a
   # lower floor was never actually resolvable for development. The library

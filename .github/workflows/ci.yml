@@ -68,6 +68,13 @@ jobs:
 
       - run: dart pub get
 
+      # pana processes the pubspec screenshot (images/logo.png) and needs the
+      # webp tools (cwebp / gif2webp) to score the full points for it.
+      - name: Install screenshot tools (webp)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webp
+
       - name: Require >= 160 pub points
         run: |
           dart pub global activate pana

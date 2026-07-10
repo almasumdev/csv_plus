@@ -8,10 +8,9 @@ docs/
 doc/api/
 
 # Development-only files not useful to package consumers.
-# The README references the logo through an absolute GitHub URL, so
-# images/ does not need to ship in the package.
+# images/logo.png ships as the pub.dev screenshot; the vector source does not.
 benchmark/
 .github/
-images/
+images/logo.svg
 tool/
 CLAUDE.md

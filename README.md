@@ -1,9 +1,4 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/almasumdev/csv_plus/main/images/logo.png"
-       alt="csv_plus: a fast, complete CSV parser and encoder for Dart and Flutter" width="180"/>
-</p>
-
-<p align="center">
   <a href="https://pub.dev/packages/csv_plus"><img src="https://img.shields.io/pub/v/csv_plus.svg" alt="pub version"></a>
   <a href="https://pub.dev/packages/csv_plus/score"><img src="https://img.shields.io/pub/points/csv_plus" alt="pub points"></a>
   <a href="https://pub.dev/packages/csv_plus"><img src="https://img.shields.io/pub/likes/csv_plus" alt="pub likes"></a>
