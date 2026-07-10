@@ -1,15 +1,23 @@
 import 'dart:async';
+import 'dart:convert';
 
 import '../core/csv_config.dart';
 import '../core/quote_mode.dart';
+import 'fast_encoder.dart';
 
 /// Streaming CSV encoder that transforms rows to CSV string chunks.
 ///
 /// Supports three modes via [CsvConfig.quoteMode]:
-/// - [QuoteMode.necessary] — quote only when the field contains delimiters,
+/// - [QuoteMode.necessary]: quote only when the field contains delimiters,
 ///   newlines, quotes, or leading/trailing whitespace.
-/// - [QuoteMode.always] — unconditionally quote every field.
-/// - [QuoteMode.strings] — quote only [String]-typed fields.
+/// - [QuoteMode.always]: unconditionally quote every field.
+/// - [QuoteMode.strings]: quote only [String]-typed fields.
+///
+/// Cell formatting is shared with [FastEncoder], so batch and streaming
+/// output are always identical for the same rows and config.
+///
+/// [bind] honors downstream backpressure: when the listener pauses, the
+/// upstream subscription is paused.
 class CsvEncoder extends StreamTransformerBase<List<dynamic>, String> {
   /// Configuration for this encoder.
   final CsvConfig config;
@@ -19,71 +27,45 @@ class CsvEncoder extends StreamTransformerBase<List<dynamic>, String> {
 
   /// Batch: encode all rows to a single CSV string.
   String convert(List<List<dynamic>> rows) {
-    if (rows.isEmpty) return config.addBom ? '\uFEFF' : '';
-
-    final buf = StringBuffer();
-    if (config.addBom) buf.writeCharCode(0xFEFF);
-
-    final delim = config.fieldDelimiter;
-    final lineDelim = config.lineDelimiter;
-    final quote = config.quoteCharacter;
-    final escape = config.escapeCharacter;
-    final mode = config.quoteMode;
-    final transform = config.encoderTransform;
-
-    for (var r = 0; r < rows.length; r++) {
-      if (r > 0) buf.write(lineDelim);
-      final row = rows[r];
-      for (var c = 0; c < row.length; c++) {
-        if (c > 0) buf.write(delim);
-        var cell = row[c];
-        if (transform != null) cell = transform(cell, c, null);
-        _writeCell(buf, cell, delim, quote, escape, mode);
-      }
-    }
-
-    return buf.toString();
+    return const FastEncoder().encode(rows, config);
   }
 
   @override
   Stream<String> bind(Stream<List<dynamic>> stream) {
-    final controller = StreamController<String>();
-    final delim = config.fieldDelimiter;
-    final lineDelim = config.lineDelimiter;
-    final quote = config.quoteCharacter;
-    final escape = config.escapeCharacter;
-    final mode = config.quoteMode;
-    final transform = config.encoderTransform;
-    var first = true;
-
-    stream.listen(
-      (row) {
-        final buf = StringBuffer();
-        if (first && config.addBom) {
-          buf.writeCharCode(0xFEFF);
-          first = false;
-        } else if (!first) {
-          buf.write(lineDelim);
-        } else {
-          first = false;
-        }
-
-        for (var c = 0; c < row.length; c++) {
-          if (c > 0) buf.write(delim);
-          var cell = row[c];
-          if (transform != null) cell = transform(cell, c, null);
-          _writeCell(buf, cell, delim, quote, escape, mode);
-        }
-
-        controller.add(buf.toString());
+    StreamSubscription<List<dynamic>>? subscription;
+    late final StreamController<String> controller;
+    controller = StreamController<String>(
+      onListen: () {
+        final formatter = _RowFormatter(config);
+        subscription = stream.listen(
+          (row) {
+            try {
+              controller.add(formatter.format(row));
+            } catch (error, stackTrace) {
+              controller.addError(error, stackTrace);
+              subscription?.cancel();
+              controller.close();
+            }
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            controller.addError(error, stackTrace);
+            controller.close();
+          },
+          onDone: controller.close,
+          cancelOnError: true,
+        );
       },
-      onError: controller.addError,
-      onDone: controller.close,
-      cancelOnError: true,
+      onPause: () => subscription?.pause(),
+      onResume: () => subscription?.resume(),
+      onCancel: () => subscription?.cancel(),
     );
-
     return controller.stream;
   }
+
+  /// Encode rows to a UTF-8 byte stream (for file or socket sinks),
+  /// without wiring `utf8.encoder` by hand.
+  Stream<List<int>> bindBytes(Stream<List<dynamic>> stream) =>
+      utf8.encoder.bind(bind(stream));
 
   /// Chunked conversion sink for `dart:convert` pipeline compatibility.
   Sink<List<dynamic>> startChunkedConversion(Sink<String> sink) {
@@ -99,82 +81,69 @@ class CsvEncoder extends StreamTransformerBase<List<dynamic>, String> {
     required QuoteMode quoteMode,
   }) {
     final buf = StringBuffer();
-    _writeCell(buf, field, fieldDelimiter, quoteCharacter, escapeCharacter,
-        quoteMode);
+    FastEncoder.writeCell(
+        buf, field, fieldDelimiter, quoteCharacter, escapeCharacter, quoteMode);
     return buf.toString();
   }
+}
 
-  static void _writeCell(
-    StringBuffer buf,
-    dynamic cell,
-    String delim,
-    String quote,
-    String escape,
-    QuoteMode mode,
-  ) {
-    if (cell == null) return;
+/// Formats one row per call, tracking BOM/line-delimiter state and the
+/// header row (when [CsvConfig.hasHeader] is set, the first row is
+/// written verbatim and provides names for [CsvConfig.encoderTransform]).
+class _RowFormatter {
+  final CsvConfig config;
+  var _first = true;
+  List<String>? _headerNames;
 
-    final str = cell.toString();
+  _RowFormatter(this.config);
 
-    switch (mode) {
-      case QuoteMode.always:
-        buf.write(quote);
-        buf.write(str.replaceAll(quote, '$escape$quote'));
-        buf.write(quote);
-      case QuoteMode.strings:
-        if (cell is String) {
-          buf.write(quote);
-          buf.write(str.replaceAll(quote, '$escape$quote'));
-          buf.write(quote);
-        } else {
-          buf.write(str);
+  String format(List<dynamic> row) {
+    final buf = StringBuffer();
+    var isHeaderRow = false;
+    if (_first) {
+      _first = false;
+      if (config.addBom) buf.writeCharCode(0xFEFF);
+      if (config.hasHeader) {
+        isHeaderRow = true;
+        if (config.encoderTransform != null) {
+          _headerNames =
+              row.map((e) => e?.toString() ?? '').toList(growable: false);
         }
-      case QuoteMode.necessary:
-        if (_needsQuoting(str, delim, quote)) {
-          buf.write(quote);
-          buf.write(str.replaceAll(quote, '$escape$quote'));
-          buf.write(quote);
-        } else {
-          buf.write(str);
-        }
+      }
+    } else {
+      buf.write(config.lineDelimiter);
     }
-  }
 
-  static bool _needsQuoting(String value, String delim, String quote) =>
-      CsvConfig.needsQuoting(value, delim, quote);
+    final transform = config.encoderTransform;
+    final headerNames = _headerNames;
+    for (var c = 0; c < row.length; c++) {
+      if (c > 0) buf.write(config.fieldDelimiter);
+      var cell = row[c];
+      if (transform != null && !isHeaderRow) {
+        final hdr = (headerNames != null && c < headerNames.length)
+            ? headerNames[c]
+            : null;
+        cell = transform(cell, c, hdr);
+      }
+      FastEncoder.writeCell(buf, cell, config.fieldDelimiter,
+          config.quoteCharacter, config.escapeCharacter, config.quoteMode);
+    }
+
+    return buf.toString();
+  }
 }
 
 /// Chunked conversion sink for [CsvEncoder].
 class _CsvEncoderSink implements Sink<List<dynamic>> {
-  final CsvConfig _config;
+  final _RowFormatter _formatter;
   final Sink<String> _output;
-  var _first = true;
 
-  _CsvEncoderSink(this._config, this._output);
+  _CsvEncoderSink(CsvConfig config, this._output)
+      : _formatter = _RowFormatter(config);
 
   @override
   void add(List<dynamic> row) {
-    final buf = StringBuffer();
-    if (_first && _config.addBom) {
-      buf.writeCharCode(0xFEFF);
-      _first = false;
-    } else if (!_first) {
-      buf.write(_config.lineDelimiter);
-    } else {
-      _first = false;
-    }
-
-    for (var c = 0; c < row.length; c++) {
-      if (c > 0) buf.write(_config.fieldDelimiter);
-      var cell = row[c];
-      if (_config.encoderTransform != null) {
-        cell = _config.encoderTransform!(cell, c, null);
-      }
-      CsvEncoder._writeCell(buf, cell, _config.fieldDelimiter,
-          _config.quoteCharacter, _config.escapeCharacter, _config.quoteMode);
-    }
-
-    _output.add(buf.toString());
+    _output.add(_formatter.format(row));
   }
 
   @override

@@ -84,10 +84,13 @@ class CsvFile {
   }) async {
     final file = File(path).openWrite();
     final encoder = CsvEncoder(config);
-    await for (final chunk in encoder.bind(rows)) {
-      file.write(chunk);
+    try {
+      await for (final chunk in encoder.bind(rows)) {
+        file.write(chunk);
+      }
+    } finally {
+      await file.close();
     }
-    await file.close();
   }
 
   /// Append rows to existing file (async).
@@ -98,10 +101,9 @@ class CsvFile {
   }) async {
     final csv = CsvCodec(config).encode(rows);
     final file = File(path);
-    final prefix =
-        await file.exists() && await file.length() > 0
-            ? config.lineDelimiter
-            : '';
+    final prefix = await file.exists() && await file.length() > 0
+        ? config.lineDelimiter
+        : '';
     await file.writeAsString('$prefix$csv', mode: FileMode.append);
   }
 }

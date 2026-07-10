@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:csv_plus/csv_plus.dart';
 import 'package:test/test.dart';
 
@@ -68,6 +70,80 @@ void main() {
         final chunks =
             await encoder.bind(const Stream<List<dynamic>>.empty()).toList();
         expect(chunks, isEmpty);
+      });
+
+      test('bindBytes encodes to a UTF-8 byte stream', () async {
+        final byteChunks = await encoder
+            .bindBytes(Stream.fromIterable([
+              ['a', 1],
+              ['b', 2],
+            ]))
+            .toList();
+        final text = utf8.decode(byteChunks.expand((c) => c).toList());
+        expect(text, 'a,1\r\nb,2');
+      });
+    });
+
+    group('null handling per quote mode', () {
+      test('necessary and strings write null as an empty unquoted field', () {
+        expect(
+          CsvEncoder(const CsvConfig(quoteMode: QuoteMode.necessary)).convert([
+            ['a', null, 'b'],
+          ]),
+          'a,,b',
+        );
+        expect(
+          CsvEncoder(const CsvConfig(quoteMode: QuoteMode.strings)).convert([
+            ['a', null, 'b'],
+          ]),
+          '"a",,"b"',
+        );
+      });
+
+      test('always quotes null as an empty quoted field', () {
+        const config = CsvConfig(quoteMode: QuoteMode.always);
+        expect(
+          CsvEncoder(config).convert([
+            ['a', null],
+          ]),
+          '"a",""',
+        );
+      });
+
+      test('necessary keeps null and empty string distinguishable', () {
+        const config = CsvConfig(skipEmptyLines: false);
+        final encoded = CsvEncoder(config).convert([
+          [null, ''],
+        ]);
+        expect(encoded, ',""');
+        final decoded = CsvDecoder(config).convert(encoded);
+        expect(decoded, [
+          [null, ''],
+        ]);
+      });
+    });
+
+    group('encodeGeneric', () {
+      test('numeric grids encode without quoting', () {
+        const config = CsvConfig();
+        expect(
+          const FastEncoder().encodeGeneric<int>([
+            [1, 2],
+            [3, 4],
+          ], config),
+          '1,2\r\n3,4',
+        );
+      });
+
+      test('strings with delimiters are quoted, not corrupted', () {
+        const config = CsvConfig();
+        final encoded = const FastEncoder().encodeGeneric<String>([
+          ['plain', 'with,comma'],
+        ], config);
+        expect(encoded, 'plain,"with,comma"');
+        expect(const FastDecoder().decodeStrings(encoded, config), [
+          ['plain', 'with,comma'],
+        ]);
       });
     });
   });
