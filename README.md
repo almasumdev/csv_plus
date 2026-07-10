@@ -11,6 +11,7 @@
   <a href="https://github.com/almasumdev/csv_plus/network/members"><img src="https://badgen.net/github/forks/almasumdev/csv_plus?icon=github" alt="GitHub forks"></a>
   <a href="https://github.com/almasumdev/csv_plus/issues"><img src="https://badgen.net/github/open-issues/almasumdev/csv_plus?icon=github" alt="GitHub issues"></a>
   <a href="https://github.com/almasumdev/csv_plus/actions/workflows/ci.yml"><img src="https://github.com/almasumdev/csv_plus/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://github.com/almasumdev/csv_plus/commits/main"><img src="https://badgen.net/github/last-commit/almasumdev/csv_plus?icon=github" alt="Last commit"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://dart.dev"><img src="https://img.shields.io/badge/Dart-3.8+-0175C2?logo=dart" alt="Dart"></a>
 </p>
@@ -77,6 +78,7 @@ cd benchmark/compare && dart pub get && dart run bench.dart
 
 - [Key features](#key-features)
 - [Limitations](#limitations)
+- [Roadmap](#roadmap)
 - [Error handling](#error-handling)
 - [Example](#example)
 - [Other useful links](#other-useful-links)
@@ -161,11 +163,21 @@ Flutter platform.
 
 ## Limitations
 
-- ❌ Comment-line skipping (`#`-prefixed rows) is not yet built in
-- ❌ Row windowing (`skipRows` / `maxRows`) is not yet built in
-- ❌ Schema-driven per-column type coercion on decode (schemas validate, they do not coerce)
+- ❌ Comment-line skipping (`#`-prefixed rows)
+- ❌ Row windowing (`skipRows` / `maxRows`)
+- ❌ Per-column type coercion on decode (schemas validate, they do not coerce)
 
-These are on the [roadmap](#other-useful-links); open an issue if you need one sooner.
+## Roadmap
+
+What ships next is driven by user requests on the
+[issue tracker](https://github.com/almasumdev/csv_plus/issues):
+
+- ⬜ Comment-line skipping (`#`-prefixed rows)
+- ⬜ Row windowing (`skipRows` / `maxRows`)
+- ⬜ Per-column type coercion driven by `CsvSchema`
+
+Shipped milestones are in the
+[changelog](https://github.com/almasumdev/csv_plus/blob/main/CHANGELOG.md).
 
 ## Error handling
 
@@ -428,6 +440,4 @@ csv_plus grows with its community; every contributor is listed here:
   <img src="https://contrib.rocks/image?repo=almasumdev/csv_plus" alt="csv_plus contributors"/>
 </a>
 
-If csv_plus helps you, please ⭐ the [repository](https://github.com/almasumdev/csv_plus)
-and 👍 it on [pub.dev](https://pub.dev/packages/csv_plus); it genuinely helps
-others find it.
+Want to help? Pull requests are welcome; see [Support and feedback](#support-and-feedback).
