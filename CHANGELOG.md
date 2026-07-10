@@ -1,3 +1,12 @@
+## 1.0.1
+
+Documentation and metadata only; no library or API changes.
+
+- Reworked the README (clearer structure, added the logo screenshot, and
+  broader keyword coverage) and refined the pub.dev topics for discoverability.
+- Switched the head-to-head benchmark to compare against serial_csv in place
+  of fast_csv.
+
 ## 1.0.0
 
 First stable release: one documented parsing semantics across every
