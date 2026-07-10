@@ -10,8 +10,8 @@ topics:
   - csv
   - csv-parser
   - serialization
-  - data-processing
-  - file-handling
+  - deserialization
+  - encoding
 
 screenshots:
   - description: The csv_plus logo.

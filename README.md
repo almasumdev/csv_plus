@@ -30,7 +30,9 @@ csv_plus parses and generates comma-separated-values (CSV) text, along with
 tab-separated (TSV), pipe-delimited, and custom-delimiter formats. It decodes CSV
 into typed Dart values, encodes rows back to RFC 4180 output with correct quoting,
 streams large files with constant memory, and offers a table layer for filtering,
-sorting, grouping, aggregating, and validating tabular data.
+sorting, grouping, aggregating, and validating tabular data. In short, it is a
+complete CSV serialization and deserialization toolkit for data processing and
+file handling in Dart and Flutter.
 
 **What you can do with it:**
 
@@ -436,3 +438,7 @@ csv_plus grows with its community; every contributor is listed here:
 </a>
 
 Want to help? Pull requests are welcome; see [Support and feedback](#support-and-feedback).
+
+---
+
+**Keywords:** CSV parser, CSV serialization, CSV deserialization, CSV encoding, CSV decoding, data processing, file handling, TSV, pipe-delimited, RFC 4180, streaming CSV, type inference, Dart CSV library, Flutter CSV.
