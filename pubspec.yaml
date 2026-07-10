@@ -14,10 +14,11 @@ topics:
   - file-handling
 
 environment:
-  # Floor is 3.6.0 because the dev toolchain (lints ^6) requires it, so
-  # 3.5.0 was never actually resolvable. The library uses only 3.0-era
-  # language features (records, patterns), so consumers on 3.6.0+ are fine.
-  sdk: ^3.6.0
+  # Floor is 3.8.0 because the dev toolchain (lints ^6) requires it, so a
+  # lower floor was never actually resolvable for development. The library
+  # itself uses only 3.0-era features (records, patterns), so consumers on
+  # 3.8.0+ are fine.
+  sdk: ^3.8.0
 
 dependencies:
 
