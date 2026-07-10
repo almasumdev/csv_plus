@@ -82,7 +82,13 @@ class CsvEncoder extends StreamTransformerBase<List<dynamic>, String> {
   }) {
     final buf = StringBuffer();
     FastEncoder.writeCell(
-        buf, field, fieldDelimiter, quoteCharacter, escapeCharacter, quoteMode);
+      buf,
+      field,
+      fieldDelimiter,
+      quoteCharacter,
+      escapeCharacter,
+      quoteMode,
+    );
     return buf.toString();
   }
 }
@@ -106,8 +112,9 @@ class _RowFormatter {
       if (config.hasHeader) {
         isHeaderRow = true;
         if (config.encoderTransform != null) {
-          _headerNames =
-              row.map((e) => e?.toString() ?? '').toList(growable: false);
+          _headerNames = row
+              .map((e) => e?.toString() ?? '')
+              .toList(growable: false);
         }
       }
     } else {
@@ -125,8 +132,14 @@ class _RowFormatter {
             : null;
         cell = transform(cell, c, hdr);
       }
-      FastEncoder.writeCell(buf, cell, config.fieldDelimiter,
-          config.quoteCharacter, config.escapeCharacter, config.quoteMode);
+      FastEncoder.writeCell(
+        buf,
+        cell,
+        config.fieldDelimiter,
+        config.quoteCharacter,
+        config.escapeCharacter,
+        config.quoteMode,
+      );
     }
 
     return buf.toString();
@@ -139,7 +152,7 @@ class _CsvEncoderSink implements Sink<List<dynamic>> {
   final Sink<String> _output;
 
   _CsvEncoderSink(CsvConfig config, this._output)
-      : _formatter = _RowFormatter(config);
+    : _formatter = _RowFormatter(config);
 
   @override
   void add(List<dynamic> row) {

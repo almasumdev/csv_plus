@@ -100,8 +100,8 @@ void main() {
     test('list cell toString with comma gets quoted', () {
       final result = codec.encode([
         [
-          [1, 2, 3]
-        ]
+          [1, 2, 3],
+        ],
       ]);
       // [1, 2, 3].toString() = "[1, 2, 3]" contains a comma, must be quoted
       expect(result, contains('"'));
@@ -110,8 +110,8 @@ void main() {
     test('map cell toString with comma gets quoted', () {
       final result = codec.encode([
         [
-          {'a': 1}
-        ]
+          {'a': 1},
+        ],
       ]);
       // {a: 1}.toString() = "{a: 1}" has no comma, no need to quote
       // But just verify it doesn't break
@@ -120,7 +120,7 @@ void main() {
 
     test('int and double cells still unquoted', () {
       final result = codec.encode([
-        [42, 3.14, true, false]
+        [42, 3.14, true, false],
       ]);
       expect(result, '42,3.14,true,false');
     });

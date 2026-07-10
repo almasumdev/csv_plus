@@ -33,10 +33,9 @@ void main() {
     });
 
     test('with custom config', () {
-      final adapter = CsvCodecAdapter(const CsvConfig(
-        fieldDelimiter: ';',
-        dynamicTyping: false,
-      ));
+      final adapter = CsvCodecAdapter(
+        const CsvConfig(fieldDelimiter: ';', dynamicTyping: false),
+      );
       final csv = adapter.encode([
         ['a', 'b'],
       ]);

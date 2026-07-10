@@ -39,20 +39,33 @@ class _CollectingSink implements Sink<List<dynamic>> {
 /// Deep equality that also distinguishes types, because Dart's `==`
 /// treats 1 and 1.0 as equal.
 void _expectRowsExact(
-    List<List<dynamic>> actual, List<List<dynamic>> expected, String label) {
-  expect(actual.length, expected.length,
-      reason: '$label: row count differs\nactual: $actual');
+  List<List<dynamic>> actual,
+  List<List<dynamic>> expected,
+  String label,
+) {
+  expect(
+    actual.length,
+    expected.length,
+    reason: '$label: row count differs\nactual: $actual',
+  );
   for (var r = 0; r < expected.length; r++) {
-    expect(actual[r].length, expected[r].length,
-        reason: '$label row $r: cell count differs\nactual: ${actual[r]}');
+    expect(
+      actual[r].length,
+      expected[r].length,
+      reason: '$label row $r: cell count differs\nactual: ${actual[r]}',
+    );
     for (var c = 0; c < expected[r].length; c++) {
       final a = actual[r][c];
       final e = expected[r][c];
       expect(a, e, reason: '$label at ($r,$c)');
       if (e != null) {
-        expect(a.runtimeType, e.runtimeType,
-            reason: '$label at ($r,$c): type differs ($a is '
-                '${a.runtimeType}, expected ${e.runtimeType})');
+        expect(
+          a.runtimeType,
+          e.runtimeType,
+          reason:
+              '$label at ($r,$c): type differs ($a is '
+              '${a.runtimeType}, expected ${e.runtimeType})',
+        );
       }
     }
   }
@@ -61,12 +74,18 @@ void _expectRowsExact(
 /// Assert that every decode path agrees on [expected], including the
 /// streaming machine with the input split at every offset.
 void _expectAllPaths(
-    String input, CsvConfig config, List<List<dynamic>> expected) {
+  String input,
+  CsvConfig config,
+  List<List<dynamic>> expected,
+) {
   _expectRowsExact(_viaBatch(input, config), expected, 'batch');
   _expectRowsExact(_viaConvert(input, config), expected, 'convert');
   for (var i = 0; i <= input.length; i++) {
     _expectRowsExact(
-        _viaChunks(input, config, i), expected, 'chunks split at $i');
+      _viaChunks(input, config, i),
+      expected,
+      'chunks split at $i',
+    );
   }
 }
 
@@ -266,21 +285,33 @@ void main() {
     const strict = CsvConfig(autoDetect: false, strict: true);
 
     test('text after a closing quote throws on every path', () {
-      expect(() => _fast.decode('"a"x,b', strict),
-          throwsA(isA<CsvParseException>()));
-      expect(() => _fast.decodeStrings('"a"x,b', strict),
-          throwsA(isA<CsvParseException>()));
-      expect(() => CsvDecoder(strict).convert('"a"x,b'),
-          throwsA(isA<CsvParseException>()));
+      expect(
+        () => _fast.decode('"a"x,b', strict),
+        throwsA(isA<CsvParseException>()),
+      );
+      expect(
+        () => _fast.decodeStrings('"a"x,b', strict),
+        throwsA(isA<CsvParseException>()),
+      );
+      expect(
+        () => CsvDecoder(strict).convert('"a"x,b'),
+        throwsA(isA<CsvParseException>()),
+      );
     });
 
     test('unterminated quote throws on every path', () {
-      expect(() => _fast.decode('"abc', strict),
-          throwsA(isA<CsvParseException>()));
-      expect(() => _fast.decodeStrings('"abc', strict),
-          throwsA(isA<CsvParseException>()));
-      expect(() => CsvDecoder(strict).convert('"abc'),
-          throwsA(isA<CsvParseException>()));
+      expect(
+        () => _fast.decode('"abc', strict),
+        throwsA(isA<CsvParseException>()),
+      );
+      expect(
+        () => _fast.decodeStrings('"abc', strict),
+        throwsA(isA<CsvParseException>()),
+      );
+      expect(
+        () => CsvDecoder(strict).convert('"abc'),
+        throwsA(isA<CsvParseException>()),
+      );
     });
 
     test('parse errors carry row and column', () {
@@ -321,9 +352,9 @@ void main() {
         final config = CsvConfig(quoteMode: mode, autoDetect: false);
         final viaFast = const FastEncoder().encode(rows, config);
         final viaConvert = CsvEncoder(config).convert(rows);
-        final viaStream =
-            (await CsvEncoder(config).bind(Stream.fromIterable(rows)).toList())
-                .join();
+        final viaStream = (await CsvEncoder(
+          config,
+        ).bind(Stream.fromIterable(rows)).toList()).join();
         expect(viaConvert, viaFast, reason: 'convert, mode $mode');
         expect(viaStream, viaFast, reason: 'stream, mode $mode');
       }

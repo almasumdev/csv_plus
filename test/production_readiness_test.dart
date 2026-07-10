@@ -105,11 +105,12 @@ void main() {
         ],
         allowMissingColumns: true,
       );
-      final errors = schema.validate([
-        'a'
-      ], [
-        [1],
-      ]);
+      final errors = schema.validate(
+        ['a'],
+        [
+          [1],
+        ],
+      );
       expect(errors, isEmpty);
     });
 
@@ -121,11 +122,12 @@ void main() {
         ],
         allowMissingColumns: false,
       );
-      final errors = schema.validate([
-        'a'
-      ], [
-        [1],
-      ]);
+      final errors = schema.validate(
+        ['a'],
+        [
+          [1],
+        ],
+      );
       expect(errors.length, 1);
       expect(errors.first.constraint, 'required');
     });
@@ -221,7 +223,9 @@ void main() {
         ],
       );
       expect(
-          () => table.setCellByName(0, 'z', 99), throwsA(isA<CsvException>()));
+        () => table.setCellByName(0, 'z', 99),
+        throwsA(isA<CsvException>()),
+      );
     });
 
     test('reorderColumns throws on unknown column', () {
@@ -231,15 +235,14 @@ void main() {
           [1, 2],
         ],
       );
-      expect(() => table.reorderColumns(['a', 'unknown']),
-          throwsA(isA<CsvException>()));
+      expect(
+        () => table.reorderColumns(['a', 'unknown']),
+        throwsA(isA<CsvException>()),
+      );
     });
 
     test('addRowFromMap with missing headers adds null', () {
-      final table = CsvTable.fromData(
-        headers: ['a', 'b', 'c'],
-        rows: [],
-      );
+      final table = CsvTable.fromData(headers: ['a', 'b', 'c'], rows: []);
       table.addRowFromMap({'a': 1, 'c': 3});
       expect(table[0].toList(), [1, null, 3]);
     });
@@ -323,9 +326,9 @@ void main() {
   // ---------------------------------------------------------------------------
   group('CsvSchema pattern validation', () {
     test('valid value passes pattern', () {
-      final schema = CsvSchema(columns: [
-        CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
-      ]);
+      final schema = CsvSchema(
+        columns: [CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$')],
+      );
       final errors = schema.validate(
         ['email'],
         [
@@ -336,9 +339,9 @@ void main() {
     });
 
     test('invalid value fails pattern', () {
-      final schema = CsvSchema(columns: [
-        CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
-      ]);
+      final schema = CsvSchema(
+        columns: [CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$')],
+      );
       final errors = schema.validate(
         ['email'],
         [
@@ -356,8 +359,10 @@ void main() {
   group('FastEncoder.encodeGeneric', () {
     test('empty data with BOM', () {
       final encoder = FastEncoder();
-      final result =
-          encoder.encodeGeneric<int>([], const CsvConfig(addBom: true));
+      final result = encoder.encodeGeneric<int>(
+        [],
+        const CsvConfig(addBom: true),
+      );
       expect(result.codeUnitAt(0), 0xFEFF);
     });
 
@@ -378,9 +383,7 @@ void main() {
     test('BOM prepended on first row', () {
       final encoder = CsvEncoder(const CsvConfig(addBom: true));
       final output = StringBuffer();
-      final sink = encoder.startChunkedConversion(
-        _StringSink(output),
-      );
+      final sink = encoder.startChunkedConversion(_StringSink(output));
       sink.add(['a', 'b']);
       sink.add([1, 2]);
       sink.close();
@@ -396,9 +399,7 @@ void main() {
     test('first row excluded when hasHeader=true', () {
       final decoder = CsvDecoder(const CsvConfig(hasHeader: true));
       final results = <List<dynamic>>[];
-      final sink = decoder.startChunkedConversion(
-        _ListSink(results),
-      );
+      final sink = decoder.startChunkedConversion(_ListSink(results));
       sink.add('name,age\nAlice,30\nBob,25');
       sink.close();
       expect(results.length, 2);

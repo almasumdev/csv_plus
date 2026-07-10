@@ -39,10 +39,12 @@ void main() {
 
   group('CsvSchema', () {
     test('validate returns empty list for valid data', () {
-      final schema = CsvSchema(columns: [
-        CsvColumnDef(name: 'name', type: String),
-        CsvColumnDef(name: 'age', type: int),
-      ]);
+      final schema = CsvSchema(
+        columns: [
+          CsvColumnDef(name: 'name', type: String),
+          CsvColumnDef(name: 'age', type: int),
+        ],
+      );
       final errors = schema.validate(
         ['name', 'age'],
         [
@@ -53,26 +55,24 @@ void main() {
     });
 
     test('validate detects missing required column', () {
-      final schema = CsvSchema(columns: [
-        CsvColumnDef(name: 'required_col', required: true),
-      ]);
+      final schema = CsvSchema(
+        columns: [CsvColumnDef(name: 'required_col', required: true)],
+      );
       final errors = schema.validate(['other'], []);
       expect(errors, hasLength(1));
     });
 
     test('validate skips missing optional column', () {
-      final schema = CsvSchema(columns: [
-        CsvColumnDef(name: 'optional_col', required: false),
-      ]);
+      final schema = CsvSchema(
+        columns: [CsvColumnDef(name: 'optional_col', required: false)],
+      );
       final errors = schema.validate(['other'], []);
       expect(errors, isEmpty);
     });
 
     test('allowMissingColumns respected', () {
       final schema = CsvSchema(
-        columns: [
-          CsvColumnDef(name: 'a', required: true),
-        ],
+        columns: [CsvColumnDef(name: 'a', required: true)],
         allowMissingColumns: true,
       );
       // allowMissingColumns suppresses missing-column errors
@@ -81,9 +81,7 @@ void main() {
 
       // Without the flag, missing required column is an error
       final strict = CsvSchema(
-        columns: [
-          CsvColumnDef(name: 'a', required: true),
-        ],
+        columns: [CsvColumnDef(name: 'a', required: true)],
         allowMissingColumns: false,
       );
       final strictErrors = strict.validate([], []);
@@ -91,12 +89,11 @@ void main() {
     });
 
     test('custom validator integration', () {
-      final schema = CsvSchema(columns: [
-        CsvColumnDef(
-          name: 'val',
-          validator: (v) => v is int && v > 0,
-        ),
-      ]);
+      final schema = CsvSchema(
+        columns: [
+          CsvColumnDef(name: 'val', validator: (v) => v is int && v > 0),
+        ],
+      );
       final errors = schema.validate(
         ['val'],
         [

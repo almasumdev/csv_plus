@@ -34,10 +34,12 @@ void main() {
 
   // --- Presets ---
   print('TSV:');
-  print(CsvCodec.tsv().encode([
-    ['a', 'b'],
-    [1, 2],
-  ]));
+  print(
+    CsvCodec.tsv().encode([
+      ['a', 'b'],
+      [1, 2],
+    ]),
+  );
   print('');
 
   print('Excel (semicolons + BOM):');

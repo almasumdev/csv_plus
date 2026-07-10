@@ -23,24 +23,24 @@ class CsvTable {
 
   /// Create from raw 2D data (no headers).
   CsvTable(List<List<dynamic>> rows)
-      : _headers = [],
-        _data = rows.map((r) => List<dynamic>.from(r)).toList();
+    : _headers = [],
+      _data = rows.map((r) => List<dynamic>.from(r)).toList();
 
   /// Create from 2D data where first row is headers.
   CsvTable.withHeaders(List<List<dynamic>> rows)
-      : _headers = rows.isNotEmpty
-            ? rows.first.map((e) => e?.toString() ?? '').toList()
-            : [],
-        _data = rows.length > 1
-            ? rows.skip(1).map((r) => List<dynamic>.from(r)).toList()
-            : [];
+    : _headers = rows.isNotEmpty
+          ? rows.first.map((e) => e?.toString() ?? '').toList()
+          : [],
+      _data = rows.length > 1
+          ? rows.skip(1).map((r) => List<dynamic>.from(r)).toList()
+          : [];
 
   /// Create from explicit headers + data rows.
   CsvTable.fromData({
     required List<String> headers,
     required List<List<dynamic>> rows,
-  })  : _headers = List<String>.from(headers),
-        _data = rows.map((r) => List<dynamic>.from(r)).toList();
+  }) : _headers = List<String>.from(headers),
+       _data = rows.map((r) => List<dynamic>.from(r)).toList();
 
   /// Create from a list of Maps.
   factory CsvTable.fromMaps(List<Map<String, dynamic>> maps) {
@@ -61,8 +61,8 @@ class CsvTable {
 
   /// Create empty table with column definitions.
   CsvTable.empty({List<String> headers = const []})
-      : _headers = List<String>.from(headers),
-        _data = [];
+    : _headers = List<String>.from(headers),
+      _data = [];
 
   /// Internal constructor for extensions. Creates without copying data:
   /// the caller must hand over freshly allocated lists it no longer uses.
@@ -314,21 +314,25 @@ class CsvTable {
   String toFormattedString({int maxRows = 20, int maxColumnWidth = 30}) {
     final allRows = <List<String>>[];
     if (hasHeaders) allRows.add(_headers);
-    final previewData =
-        _data.length > maxRows ? _data.sublist(0, maxRows) : _data;
+    final previewData = _data.length > maxRows
+        ? _data.sublist(0, maxRows)
+        : _data;
     for (final row in previewData) {
-      allRows.add(row.map((c) {
-        final s = c?.toString() ?? 'null';
-        return s.length > maxColumnWidth
-            ? '${s.substring(0, maxColumnWidth - 3)}...'
-            : s;
-      }).toList());
+      allRows.add(
+        row.map((c) {
+          final s = c?.toString() ?? 'null';
+          return s.length > maxColumnWidth
+              ? '${s.substring(0, maxColumnWidth - 3)}...'
+              : s;
+        }).toList(),
+      );
     }
 
     if (allRows.isEmpty) return '(empty table)';
 
-    final colCount =
-        allRows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
+    final colCount = allRows
+        .map((r) => r.length)
+        .reduce((a, b) => a > b ? a : b);
     final widths = List.filled(colCount, 0);
     for (final row in allRows) {
       for (var i = 0; i < row.length; i++) {

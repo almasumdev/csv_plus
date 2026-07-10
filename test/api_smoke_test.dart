@@ -45,8 +45,13 @@ void main() {
     test('all exceptions constructable', () {
       const e1 = CsvException('test');
       const e2 = CsvParseException('test', row: 1, column: 2, offset: 3);
-      const e3 = CsvValidationException('test',
-          columnName: 'a', rowIndex: 0, value: 'x', constraint: 'type');
+      const e3 = CsvValidationException(
+        'test',
+        columnName: 'a',
+        rowIndex: 0,
+        value: 'x',
+        constraint: 'type',
+      );
       expect(e1.toString(), contains('CsvException'));
       expect(e2.toString(), contains('row: 1'));
       expect(e3.toString(), contains('column: "a"'));
@@ -83,20 +88,23 @@ void main() {
     test('encode methods', () {
       final codec = CsvCodec();
       expect(
-          codec.encode([
-            ['a', 1]
-          ]),
-          isNotEmpty);
+        codec.encode([
+          ['a', 1],
+        ]),
+        isNotEmpty,
+      );
       expect(
-          codec.encodeStrings([
-            ['a', 'b']
-          ]),
-          isNotEmpty);
+        codec.encodeStrings([
+          ['a', 'b'],
+        ]),
+        isNotEmpty,
+      );
       expect(
-          codec.encodeGeneric([
-            [1, 2]
-          ]),
-          isNotEmpty);
+        codec.encodeGeneric([
+          [1, 2],
+        ]),
+        isNotEmpty,
+      );
     });
 
     test('table and map methods', () {
@@ -125,7 +133,7 @@ void main() {
       final adapter = CsvCodecAdapter();
       final encoded = adapter.encoder.convert([
         ['a', 'b'],
-        [1, 2]
+        [1, 2],
       ]);
       final decoded = adapter.decoder.convert(encoded);
       expect(decoded, isNotEmpty);
@@ -137,20 +145,23 @@ void main() {
       const enc = FastEncoder();
       const cfg = CsvConfig();
       expect(
-          enc.encode([
-            ['a', 1]
-          ], cfg),
-          isNotEmpty);
+        enc.encode([
+          ['a', 1],
+        ], cfg),
+        isNotEmpty,
+      );
       expect(
-          enc.encodeStrings([
-            ['a', 'b']
-          ], cfg),
-          isNotEmpty);
+        enc.encodeStrings([
+          ['a', 'b'],
+        ], cfg),
+        isNotEmpty,
+      );
       expect(
-          enc.encodeGeneric([
-            [1, 2]
-          ], cfg),
-          isNotEmpty);
+        enc.encodeGeneric([
+          [1, 2],
+        ], cfg),
+        isNotEmpty,
+      );
       expect(enc.encodeMap({'key': 'val'}, cfg), isNotEmpty);
     });
   });
@@ -159,16 +170,19 @@ void main() {
     test('convert and encodeField', () {
       const enc = CsvEncoder();
       expect(
-          enc.convert([
-            ['a', 'b']
-          ]),
-          isNotEmpty);
+        enc.convert([
+          ['a', 'b'],
+        ]),
+        isNotEmpty,
+      );
       expect(
-        CsvEncoder.encodeField('hello, world',
-            fieldDelimiter: ',',
-            quoteCharacter: '"',
-            escapeCharacter: '"',
-            quoteMode: QuoteMode.necessary),
+        CsvEncoder.encodeField(
+          'hello, world',
+          fieldDelimiter: ',',
+          quoteCharacter: '"',
+          escapeCharacter: '"',
+          quoteMode: QuoteMode.necessary,
+        ),
         contains('"'),
       );
     });
@@ -226,21 +240,22 @@ void main() {
     test('constructors', () {
       final t1 = CsvTable([
         ['a', 1],
-        ['b', 2]
+        ['b', 2],
       ]);
       final t2 = CsvTable.withHeaders([
         ['name', 'age'],
-        ['Alice', 30]
+        ['Alice', 30],
       ]);
-      final t3 = CsvTable.fromData(headers: [
-        'name'
-      ], rows: [
-        ['Alice'],
-        ['Bob']
-      ]);
+      final t3 = CsvTable.fromData(
+        headers: ['name'],
+        rows: [
+          ['Alice'],
+          ['Bob'],
+        ],
+      );
       final t4 = CsvTable.fromMaps([
         {'name': 'Alice'},
-        {'name': 'Bob'}
+        {'name': 'Bob'},
       ]);
       final t5 = CsvTable.parse(csv);
       final t6 = CsvTable.empty(headers: ['a', 'b']);
@@ -300,7 +315,7 @@ void main() {
       expect(t.rowCount, count + 2);
       t.addRows([
         ['E', 1, true],
-        ['F', 2, false]
+        ['F', 2, false],
       ]);
       t.removeWhere((row) => row['name'] == 'E');
     });
@@ -392,14 +407,14 @@ void main() {
         ['name', 'age'],
         [
           ['Alice', 30],
-          ['Bob', 25]
+          ['Bob', 25],
         ],
       );
       expect(schema.columns, hasLength(2));
       final errors = schema.validate(
         ['name', 'age'],
         [
-          ['Alice', 30]
+          ['Alice', 30],
         ],
       );
       expect(errors, isEmpty);

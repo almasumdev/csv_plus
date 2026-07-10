@@ -41,8 +41,10 @@ void main() {
     codec.decode(csv);
   }
   sw1.stop();
-  print('decode (typed):   ${sw1.elapsedMilliseconds}ms '
-      '(${(sw1.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)');
+  print(
+    'decode (typed):   ${sw1.elapsedMilliseconds}ms '
+    '(${(sw1.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)',
+  );
 
   // Benchmark decodeStrings (no type inference)
   final sw2 = Stopwatch()..start();
@@ -50,8 +52,10 @@ void main() {
     codec.decodeStrings(csv);
   }
   sw2.stop();
-  print('decodeStrings:    ${sw2.elapsedMilliseconds}ms '
-      '(${(sw2.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)');
+  print(
+    'decodeStrings:    ${sw2.elapsedMilliseconds}ms '
+    '(${(sw2.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)',
+  );
 
   // Benchmark decodeFlexible (lenient mode)
   final sw3 = Stopwatch()..start();
@@ -59,16 +63,21 @@ void main() {
     codec.decodeFlexible(csv);
   }
   sw3.stop();
-  print('decodeFlexible:   ${sw3.elapsedMilliseconds}ms '
-      '(${(sw3.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)');
+  print(
+    'decodeFlexible:   ${sw3.elapsedMilliseconds}ms '
+    '(${(sw3.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)',
+  );
 
   print('');
   print('Throughput:');
   final mbSize = csv.length / (1024 * 1024);
   print(
-      '  decode:        ${(mbSize * iterations / (sw1.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
+    '  decode:        ${(mbSize * iterations / (sw1.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s',
+  );
   print(
-      '  decodeStrings: ${(mbSize * iterations / (sw2.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
+    '  decodeStrings: ${(mbSize * iterations / (sw2.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s',
+  );
   print(
-      '  decodeFlexible:${(mbSize * iterations / (sw3.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
+    '  decodeFlexible:${(mbSize * iterations / (sw3.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s',
+  );
 }

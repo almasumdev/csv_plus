@@ -49,11 +49,11 @@ class CsvConfig {
 
   /// Transform each field after decoding.
   final dynamic Function(dynamic value, int index, String? header)?
-      decoderTransform;
+  decoderTransform;
 
   /// Transform each field before encoding.
   final dynamic Function(dynamic value, int index, String? header)?
-      encoderTransform;
+  encoderTransform;
 
   /// Create a CSV configuration.
   ///
@@ -88,10 +88,10 @@ class CsvConfig {
     this.strict = false,
     this.decoderTransform,
     this.encoderTransform,
-  })  : fieldDelimiter = ';',
-        addBom = true,
-        autoDetect = false,
-        escapeCharacter = escapeCharacter ?? quoteCharacter;
+  }) : fieldDelimiter = ';',
+       addBom = true,
+       autoDetect = false,
+       escapeCharacter = escapeCharacter ?? quoteCharacter;
 
   /// Tab-separated values preset.
   const CsvConfig.tsv({
@@ -106,9 +106,9 @@ class CsvConfig {
     this.strict = false,
     this.decoderTransform,
     this.encoderTransform,
-  })  : fieldDelimiter = '\t',
-        autoDetect = false,
-        escapeCharacter = escapeCharacter ?? quoteCharacter;
+  }) : fieldDelimiter = '\t',
+       autoDetect = false,
+       escapeCharacter = escapeCharacter ?? quoteCharacter;
 
   /// Pipe-separated values preset.
   const CsvConfig.pipe({
@@ -123,9 +123,9 @@ class CsvConfig {
     this.strict = false,
     this.decoderTransform,
     this.encoderTransform,
-  })  : fieldDelimiter = '|',
-        autoDetect = false,
-        escapeCharacter = escapeCharacter ?? quoteCharacter;
+  }) : fieldDelimiter = '|',
+       autoDetect = false,
+       escapeCharacter = escapeCharacter ?? quoteCharacter;
 
   /// Create a modified copy, overriding only the specified fields.
   ///
@@ -145,9 +145,9 @@ class CsvConfig {
     bool? dynamicTyping,
     bool? strict,
     dynamic Function(dynamic value, int index, String? header)?
-        decoderTransform,
+    decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
-        encoderTransform,
+    encoderTransform,
   }) {
     return CsvConfig(
       fieldDelimiter: fieldDelimiter ?? this.fieldDelimiter,

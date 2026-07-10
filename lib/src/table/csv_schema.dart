@@ -43,12 +43,14 @@ class CsvSchema {
         }
       }
 
-      columns.add(CsvColumnDef(
-        name: headers[c],
-        type: allNull ? null : common,
-        required: true,
-        nullable: hasNull,
-      ));
+      columns.add(
+        CsvColumnDef(
+          name: headers[c],
+          type: allNull ? null : common,
+          required: true,
+          nullable: hasNull,
+        ),
+      );
     }
     return CsvSchema(columns: columns);
   }
@@ -66,13 +68,15 @@ class CsvSchema {
     if (!allowMissingColumns) {
       for (final col in columns) {
         if (col.required && !headerSet.contains(col.name)) {
-          errors.add(CsvValidationException(
-            'Missing required column: ${col.name}',
-            columnName: col.name,
-            rowIndex: -1,
-            value: null,
-            constraint: 'required',
-          ));
+          errors.add(
+            CsvValidationException(
+              'Missing required column: ${col.name}',
+              columnName: col.name,
+              rowIndex: -1,
+              value: null,
+              constraint: 'required',
+            ),
+          );
         }
       }
     }
@@ -81,13 +85,15 @@ class CsvSchema {
     if (!allowExtraColumns) {
       for (final h in headers) {
         if (!schemaMap.containsKey(h)) {
-          errors.add(CsvValidationException(
-            'Extra column not allowed: $h',
-            columnName: h,
-            rowIndex: -1,
-            value: null,
-            constraint: 'no_extra_columns',
-          ));
+          errors.add(
+            CsvValidationException(
+              'Extra column not allowed: $h',
+              columnName: h,
+              rowIndex: -1,
+              value: null,
+              constraint: 'no_extra_columns',
+            ),
+          );
         }
       }
     }
@@ -103,13 +109,15 @@ class CsvSchema {
 
         // Nullable check
         if (!col.nullable && value == null) {
-          errors.add(CsvValidationException(
-            'Null value in non-nullable column: ${col.name}',
-            columnName: col.name,
-            rowIndex: r,
-            value: value,
-            constraint: 'non_nullable',
-          ));
+          errors.add(
+            CsvValidationException(
+              'Null value in non-nullable column: ${col.name}',
+              columnName: col.name,
+              rowIndex: r,
+              value: value,
+              constraint: 'non_nullable',
+            ),
+          );
           continue;
         }
 
@@ -117,41 +125,47 @@ class CsvSchema {
 
         // Type check
         if (col.type != null && value.runtimeType != col.type) {
-          errors.add(CsvValidationException(
-            'Expected ${col.type} but got ${value.runtimeType} '
-            'in column ${col.name} at row $r',
-            columnName: col.name,
-            rowIndex: r,
-            value: value,
-            constraint: 'type:${col.type}',
-          ));
+          errors.add(
+            CsvValidationException(
+              'Expected ${col.type} but got ${value.runtimeType} '
+              'in column ${col.name} at row $r',
+              columnName: col.name,
+              rowIndex: r,
+              value: value,
+              constraint: 'type:${col.type}',
+            ),
+          );
         }
 
         // Pattern check
         if (col.pattern != null) {
           final regex = RegExp(col.pattern!);
           if (!regex.hasMatch(value.toString())) {
-            errors.add(CsvValidationException(
-              'Value "$value" does not match pattern "${col.pattern}" '
-              'in column ${col.name} at row $r',
-              columnName: col.name,
-              rowIndex: r,
-              value: value,
-              constraint: 'pattern:${col.pattern}',
-            ));
+            errors.add(
+              CsvValidationException(
+                'Value "$value" does not match pattern "${col.pattern}" '
+                'in column ${col.name} at row $r',
+                columnName: col.name,
+                rowIndex: r,
+                value: value,
+                constraint: 'pattern:${col.pattern}',
+              ),
+            );
           }
         }
 
         // Custom validator
         if (col.validator != null && !col.validator!(value)) {
-          errors.add(CsvValidationException(
-            'Custom validation failed for value "$value" '
-            'in column ${col.name} at row $r',
-            columnName: col.name,
-            rowIndex: r,
-            value: value,
-            constraint: 'custom',
-          ));
+          errors.add(
+            CsvValidationException(
+              'Custom validation failed for value "$value" '
+              'in column ${col.name} at row $r',
+              columnName: col.name,
+              rowIndex: r,
+              value: value,
+              constraint: 'custom',
+            ),
+          );
         }
       }
     }

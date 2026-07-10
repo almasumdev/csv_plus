@@ -10,8 +10,9 @@ void main() {
 
   group('c<=13 guard safety', () {
     test('tab delimiter works (tab=9, within <=13 range)', () {
-      final tabCodec =
-          CsvCodec(CsvConfig(fieldDelimiter: '\t', dynamicTyping: true));
+      final tabCodec = CsvCodec(
+        CsvConfig(fieldDelimiter: '\t', dynamicTyping: true),
+      );
       final result = tabCodec.decode('a\tb\tc\n1\t2\t3');
       expect(result, [
         ['a', 'b', 'c'],
@@ -66,42 +67,42 @@ void main() {
   group('encoder _needsQuoting optimization', () {
     test('non-String cells skip quoting in necessary mode', () {
       final result = codec.encode([
-        [1, 2.5, true, null, 'hello', 'has,comma']
+        [1, 2.5, true, null, 'hello', 'has,comma'],
       ]);
       expect(result, '1,2.5,true,,hello,"has,comma"');
     });
 
     test('empty string is quoted to distinguish from null', () {
       final result = codec.encode([
-        ['', 'a']
+        ['', 'a'],
       ]);
       expect(result, '"",a');
     });
 
     test('string with newline is quoted', () {
       final result = codec.encode([
-        ['line1\nline2']
+        ['line1\nline2'],
       ]);
       expect(result, '"line1\nline2"');
     });
 
     test('string with CR is quoted', () {
       final result = codec.encode([
-        ['line1\rline2']
+        ['line1\rline2'],
       ]);
       expect(result, '"line1\rline2"');
     });
 
     test('string with leading/trailing space is quoted', () {
       final result = codec.encode([
-        [' hello ', 'world']
+        [' hello ', 'world'],
       ]);
       expect(result, '" hello ",world');
     });
 
     test('string with quote escapes correctly', () {
       final result = codec.encode([
-        ['say "hi"']
+        ['say "hi"'],
       ]);
       expect(result, '"say ""hi"""');
     });
@@ -109,7 +110,7 @@ void main() {
     test('QuoteMode.always still quotes ints', () {
       final alwaysCodec = CsvCodec(CsvConfig(quoteMode: QuoteMode.always));
       final result = alwaysCodec.encode([
-        [1, 'hi']
+        [1, 'hi'],
       ]);
       expect(result, '"1","hi"');
     });
@@ -117,7 +118,7 @@ void main() {
     test('QuoteMode.strings quotes strings but not ints', () {
       final strCodec = CsvCodec(CsvConfig(quoteMode: QuoteMode.strings));
       final result = strCodec.encode([
-        [1, 'hi']
+        [1, 'hi'],
       ]);
       expect(result, '1,"hi"');
     });

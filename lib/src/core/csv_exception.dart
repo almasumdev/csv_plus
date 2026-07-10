@@ -19,12 +19,7 @@ class CsvParseException extends CsvException {
   final int? column;
   final int? offset;
 
-  const CsvParseException(
-    super.message, {
-    this.row,
-    this.column,
-    this.offset,
-  });
+  const CsvParseException(super.message, {this.row, this.column, this.offset});
 
   @override
   String toString() {

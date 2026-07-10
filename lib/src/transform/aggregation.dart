@@ -65,7 +65,9 @@ extension CsvTableAggregation on CsvTable {
       (groups[key] ??= []).add(List<dynamic>.from(row));
     }
 
-    return groups.map((key, rows) =>
-        MapEntry(key, CsvTable.internal(List<String>.from(headers), rows)));
+    return groups.map(
+      (key, rows) =>
+          MapEntry(key, CsvTable.internal(List<String>.from(headers), rows)),
+    );
   }
 }

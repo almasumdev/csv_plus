@@ -186,15 +186,18 @@ class FastDecoder {
           if (escapePositions != null) {
             for (var i = escapePositions.length - 1; i >= 0; i--) {
               value = value.replaceRange(
-                  escapePositions[i], escapePositions[i] + 1, '');
+                escapePositions[i],
+                escapePositions[i] + 1,
+                '',
+              );
             }
           }
           // Text after the closing quote up to the next boundary is
           // appended to the field (Excel behavior); strict mode throws.
           if (closed && cursor < len) {
             final after = bytes[cursor];
-            final atBoundary = (after <= _cr &&
-                    (after == _cr || after == _lf)) ||
+            final atBoundary =
+                (after <= _cr && (after == _cr || after == _lf)) ||
                 (singleCharDelim
                     ? after == firstDelim
                     : _matchDelim(bytes, cursor, delimBytes, delimLen, len));
@@ -333,7 +336,8 @@ class FastDecoder {
           // Data-loss guard: a multi-digit run starting with 0 stays text
           // (007 is an identifier, not the number 7).
           final digitIdx = ch == _minus ? cursor + 1 : cursor;
-          final zeroLed = digitIdx + 1 < len &&
+          final zeroLed =
+              digitIdx + 1 < len &&
               bytes[digitIdx] == _zero &&
               bytes[digitIdx + 1] >= _zero &&
               bytes[digitIdx + 1] <= _nine;
@@ -354,7 +358,8 @@ class FastDecoder {
           }
 
           // Verify the field ends at a boundary (delimiter/CR/LF/EOF)
-          final atBoundary = cursor >= len ||
+          final atBoundary =
+              cursor >= len ||
               (bytes[cursor] <= _cr &&
                   (bytes[cursor] == _cr || bytes[cursor] == _lf)) ||
               (singleCharDelim
@@ -569,15 +574,18 @@ class FastDecoder {
           if (escapePositions != null) {
             for (var i = escapePositions.length - 1; i >= 0; i--) {
               value = value.replaceRange(
-                  escapePositions[i], escapePositions[i] + 1, '');
+                escapePositions[i],
+                escapePositions[i] + 1,
+                '',
+              );
             }
           }
           // Text after the closing quote up to the next boundary is
           // appended to the field (Excel behavior); strict mode throws.
           if (closed && cursor < len) {
             final after = bytes[cursor];
-            final atBoundary = (after <= _cr &&
-                    (after == _cr || after == _lf)) ||
+            final atBoundary =
+                (after <= _cr && (after == _cr || after == _lf)) ||
                 (singleCharDelim
                     ? after == firstDelim
                     : _matchDelim(bytes, cursor, delimBytes, delimLen, len));
@@ -689,8 +697,7 @@ class FastDecoder {
     List<int> delimBytes,
     int delimLen,
     int totalLen,
-  ) =>
-      _matchDelim(bytes, pos, delimBytes, delimLen, totalLen);
+  ) => _matchDelim(bytes, pos, delimBytes, delimLen, totalLen);
 
   /// Check if current position is a field delimiter.
   static bool isDelimiterAt(
@@ -765,7 +772,11 @@ class FastDecoder {
 
   // Add cell to pre-sized or growing row
   static void _addCell(
-      List<dynamic> row, int idx, int colCount, dynamic value) {
+    List<dynamic> row,
+    int idx,
+    int colCount,
+    dynamic value,
+  ) {
     if (colCount > 0 && idx < colCount) {
       row[idx] = value;
     } else {

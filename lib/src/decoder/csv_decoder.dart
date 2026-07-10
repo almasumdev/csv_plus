@@ -443,7 +443,7 @@ class _CsvDecoderSink extends StringConversionSinkBase {
   final Sink<List<dynamic>> _output;
 
   _CsvDecoderSink(CsvConfig config, this._output)
-      : _machine = _StateMachine(config, _output.add);
+    : _machine = _StateMachine(config, _output.add);
 
   @override
   void addSlice(String str, int start, int end, bool isLast) {

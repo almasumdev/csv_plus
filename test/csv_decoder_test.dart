@@ -158,15 +158,17 @@ void main() {
         ]);
       });
 
-      test('partial delimiter across boundary that mismatches is content',
-          () async {
-        final d = CsvDecoder(const CsvConfig(fieldDelimiter: '::'));
-        final stream = Stream.fromIterable(['a:', 'b::c']);
-        final rows = await d.bind(stream).toList();
-        expect(rows, [
-          ['a:b', 'c'],
-        ]);
-      });
+      test(
+        'partial delimiter across boundary that mismatches is content',
+        () async {
+          final d = CsvDecoder(const CsvConfig(fieldDelimiter: '::'));
+          final stream = Stream.fromIterable(['a:', 'b::c']);
+          final rows = await d.bind(stream).toList();
+          expect(rows, [
+            ['a:b', 'c'],
+          ]);
+        },
+      );
     });
 
     group('stream contract', () {
@@ -184,8 +186,11 @@ void main() {
         await pumpEventQueue();
         sub.pause();
         await pumpEventQueue();
-        expect(upstreamPaused, isTrue,
-            reason: 'backpressure must reach the source');
+        expect(
+          upstreamPaused,
+          isTrue,
+          reason: 'backpressure must reach the source',
+        );
 
         sub.resume();
         await pumpEventQueue();
@@ -216,7 +221,9 @@ void main() {
         final source = StreamController<String>();
         final events = <String>[];
         final done = Completer<void>();
-        decoder.bind(source.stream).listen(
+        decoder
+            .bind(source.stream)
+            .listen(
               (row) => events.add('row'),
               onError: (Object e) => events.add('error'),
               onDone: () {
@@ -234,7 +241,8 @@ void main() {
         final bytes = utf8.encode('name,age\nAlice,30');
         final rows = await decoder
             .bindBytes(
-                Stream.fromIterable([bytes.sublist(0, 7), bytes.sublist(7)]))
+              Stream.fromIterable([bytes.sublist(0, 7), bytes.sublist(7)]),
+            )
             .toList();
         expect(rows, [
           ['name', 'age'],

@@ -34,8 +34,9 @@ class FastEncoder {
 
     List<String>? headerNames;
     if (transform != null && hasHeader) {
-      headerNames =
-          data.first.map((e) => e?.toString() ?? '').toList(growable: false);
+      headerNames = data.first
+          .map((e) => e?.toString() ?? '')
+          .toList(growable: false);
     }
 
     for (var r = 0; r < data.length; r++) {

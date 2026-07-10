@@ -59,8 +59,9 @@ extension CsvTableManipulation on CsvTable {
     setHeaders(newOrder.toList());
     for (var r = 0; r < rawData.length; r++) {
       final oldRow = rawData[r];
-      rawData[r] =
-          indices.map((i) => i < oldRow.length ? oldRow[i] : null).toList();
+      rawData[r] = indices
+          .map((i) => i < oldRow.length ? oldRow[i] : null)
+          .toList();
     }
   }
 

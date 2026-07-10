@@ -38,10 +38,9 @@ class CsvFile {
     String path, {
     CsvConfig config = const CsvConfig(),
   }) {
-    return File(path)
-        .openRead()
-        .transform(utf8.decoder)
-        .transform(CsvDecoder(config));
+    return File(
+      path,
+    ).openRead().transform(utf8.decoder).transform(CsvDecoder(config));
   }
 
   // --- Write ---

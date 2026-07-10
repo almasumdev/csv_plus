@@ -5,10 +5,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('BUG 5: Streaming escape at chunk boundary (escape != quote)', () {
-    final config = CsvConfig(
-      escapeCharacter: r'\',
-      quoteCharacter: '"',
-    );
+    final config = CsvConfig(escapeCharacter: r'\', quoteCharacter: '"');
     final decoder = CsvDecoder(config);
 
     test('escape split across two chunks', () async {
@@ -25,7 +22,7 @@ void main() {
       // Test every split position of: "a\"b",c
       const input = '"a\\"b",c';
       final expected = [
-        ['a"b', 'c']
+        ['a"b', 'c'],
       ];
 
       for (var i = 0; i <= input.length; i++) {
@@ -38,8 +35,11 @@ void main() {
         if (chunk2.isNotEmpty) machine.addChunk(chunk2);
         machine.finish();
 
-        expect(rows, expected,
-            reason: 'Failed at split $i: "$chunk1" + "$chunk2"');
+        expect(
+          rows,
+          expected,
+          reason: 'Failed at split $i: "$chunk1" + "$chunk2"',
+        );
       }
     });
 
@@ -123,8 +123,11 @@ void main() {
       // Streaming (CsvDecoder)
       final streamRows = CsvDecoder(batchConfig).convert(input);
 
-      expect(streamRows, batchRows,
-          reason: 'Streaming and batch decoders must return same values');
+      expect(
+        streamRows,
+        batchRows,
+        reason: 'Streaming and batch decoders must return same values',
+      );
     });
   });
 }

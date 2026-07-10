@@ -35,26 +35,33 @@ void main() {
     lastCsv = codec.encode(data);
   }
   sw1.stop();
-  print('encode:           ${sw1.elapsedMilliseconds}ms '
-      '(${(sw1.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)');
+  print(
+    'encode:           ${sw1.elapsedMilliseconds}ms '
+    '(${(sw1.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)',
+  );
 
   // Benchmark encodeStrings (all strings, no type check)
-  final stringData =
-      data.map((r) => r.map((c) => c.toString()).toList()).toList();
+  final stringData = data
+      .map((r) => r.map((c) => c.toString()).toList())
+      .toList();
   final sw2 = Stopwatch()..start();
   for (var i = 0; i < iterations; i++) {
     codec.encodeStrings(stringData);
   }
   sw2.stop();
-  print('encodeStrings:    ${sw2.elapsedMilliseconds}ms '
-      '(${(sw2.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)');
+  print(
+    'encodeStrings:    ${sw2.elapsedMilliseconds}ms '
+    '(${(sw2.elapsedMilliseconds / iterations).toStringAsFixed(1)}ms/iter)',
+  );
 
   print('');
   final mbSize = lastCsv.length / (1024 * 1024);
   print('Output size: ${(lastCsv.length / 1024).toStringAsFixed(1)} KB');
   print('Throughput:');
   print(
-      '  encode:        ${(mbSize * iterations / (sw1.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
+    '  encode:        ${(mbSize * iterations / (sw1.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s',
+  );
   print(
-      '  encodeStrings: ${(mbSize * iterations / (sw2.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
+    '  encodeStrings: ${(mbSize * iterations / (sw2.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s',
+  );
 }

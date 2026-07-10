@@ -9,8 +9,10 @@ void main() {
     const config = CsvConfig();
 
     test('trims whitespace from unquoted fields', () {
-      final result =
-          decoder.decodeFlexible('  hello , world  \n  1 , 2 ', config);
+      final result = decoder.decodeFlexible(
+        '  hello , world  \n  1 , 2 ',
+        config,
+      );
       expect(result, [
         ['hello', 'world'],
         [1, 2],

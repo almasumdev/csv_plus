@@ -94,17 +94,32 @@ extension FastDecoderFlexible on FastDecoder {
             // Text after the closing quote up to the next boundary is
             // appended (same rule as the standard decoders).
             final after = bytes[cursor];
-            final atBoundary = after == _cr ||
+            final atBoundary =
+                after == _cr ||
                 after == _lf ||
-                FastDecoder.isDelimiterAt(bytes, cursor, singleCharDelim,
-                    firstDelim, delimBytes, delimLen, len);
+                FastDecoder.isDelimiterAt(
+                  bytes,
+                  cursor,
+                  singleCharDelim,
+                  firstDelim,
+                  delimBytes,
+                  delimLen,
+                  len,
+                );
             if (!atBoundary) {
               final junkStart = cursor;
               while (cursor < len) {
                 final c = bytes[cursor];
                 if (c == _cr || c == _lf) break;
-                if (FastDecoder.isDelimiterAt(bytes, cursor, singleCharDelim,
-                    firstDelim, delimBytes, delimLen, len)) {
+                if (FastDecoder.isDelimiterAt(
+                  bytes,
+                  cursor,
+                  singleCharDelim,
+                  firstDelim,
+                  delimBytes,
+                  delimLen,
+                  len,
+                )) {
                   break;
                 }
                 cursor++;
@@ -113,8 +128,15 @@ extension FastDecoderFlexible on FastDecoder {
             }
           }
           currentRow.add(value);
-        } else if (FastDecoder.isDelimiterAt(bytes, cursor, singleCharDelim,
-            firstDelim, delimBytes, delimLen, len)) {
+        } else if (FastDecoder.isDelimiterAt(
+          bytes,
+          cursor,
+          singleCharDelim,
+          firstDelim,
+          delimBytes,
+          delimLen,
+          len,
+        )) {
           currentRow.add(dynamicTyping ? null : '');
         } else {
           // Unquoted field: read and trim whitespace
@@ -123,8 +145,15 @@ extension FastDecoderFlexible on FastDecoder {
           while (cursor < len) {
             final c = bytes[cursor];
             if (c == _cr || c == _lf) break;
-            if (FastDecoder.isDelimiterAt(bytes, cursor, singleCharDelim,
-                firstDelim, delimBytes, delimLen, len)) {
+            if (FastDecoder.isDelimiterAt(
+              bytes,
+              cursor,
+              singleCharDelim,
+              firstDelim,
+              delimBytes,
+              delimLen,
+              len,
+            )) {
               break;
             }
             cursor++;
@@ -149,7 +178,12 @@ extension FastDecoderFlexible on FastDecoder {
           cursor++;
         } else if (!singleCharDelim &&
             FastDecoder.matchDelimiter(
-                bytes, cursor, delimBytes, delimLen, len)) {
+              bytes,
+              cursor,
+              delimBytes,
+              delimLen,
+              len,
+            )) {
           cursor += delimLen;
         }
       }
@@ -176,8 +210,11 @@ extension FastDecoderFlexible on FastDecoder {
   /// Throws [CsvParseException] (with row and column) for any field that
   /// is not a valid integer. Empty fields throw too, unless [emptyAs]
   /// provides an explicit fill value.
-  List<List<int>> decodeIntegers(String input, CsvConfig config,
-      {int? emptyAs}) {
+  List<List<int>> decodeIntegers(
+    String input,
+    CsvConfig config, {
+    int? emptyAs,
+  }) {
     final stringRows = decodeStrings(input, config);
     final result = <List<int>>[];
     for (var r = 0; r < stringRows.length; r++) {
@@ -217,8 +254,11 @@ extension FastDecoderFlexible on FastDecoder {
   /// Throws [CsvParseException] (with row and column) for any field that
   /// is not a valid double. Empty fields throw too, unless [emptyAs]
   /// provides an explicit fill value.
-  List<List<double>> decodeDoubles(String input, CsvConfig config,
-      {double? emptyAs}) {
+  List<List<double>> decodeDoubles(
+    String input,
+    CsvConfig config, {
+    double? emptyAs,
+  }) {
     final stringRows = decodeStrings(input, config);
     final result = <List<double>>[];
     for (var r = 0; r < stringRows.length; r++) {
@@ -259,8 +299,11 @@ extension FastDecoderFlexible on FastDecoder {
   /// `false` and `0` read as `false`. Anything else throws
   /// [CsvParseException]. Empty fields throw too, unless [emptyAs]
   /// provides an explicit fill value.
-  List<List<bool>> decodeBooleans(String input, CsvConfig config,
-      {bool? emptyAs}) {
+  List<List<bool>> decodeBooleans(
+    String input,
+    CsvConfig config, {
+    bool? emptyAs,
+  }) {
     final stringRows = decodeStrings(input, config);
     final result = <List<bool>>[];
     for (var r = 0; r < stringRows.length; r++) {

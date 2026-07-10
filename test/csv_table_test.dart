@@ -390,7 +390,8 @@ void main() {
 
       test('sort with custom comparator', () {
         table.sort(
-            (a, b) => (a['name'] as String).compareTo(b['name'] as String));
+          (a, b) => (a['name'] as String).compareTo(b['name'] as String),
+        );
         expect(table.cell(0, 0), 'Alice');
       });
     });
@@ -551,20 +552,24 @@ void main() {
             ['Alice', 30],
           ],
         );
-        final schema = CsvSchema(columns: [
-          CsvColumnDef(name: 'name', type: String),
-          CsvColumnDef(name: 'age', type: int),
-        ]);
+        final schema = CsvSchema(
+          columns: [
+            CsvColumnDef(name: 'name', type: String),
+            CsvColumnDef(name: 'age', type: int),
+          ],
+        );
         expect(table.validate(schema), isEmpty);
         expect(table.conformsTo(schema), true);
       });
 
       test('missing required column', () {
         final table = CsvTable.fromData(headers: ['name'], rows: []);
-        final schema = CsvSchema(columns: [
-          CsvColumnDef(name: 'name'),
-          CsvColumnDef(name: 'age', required: true),
-        ]);
+        final schema = CsvSchema(
+          columns: [
+            CsvColumnDef(name: 'name'),
+            CsvColumnDef(name: 'age', required: true),
+          ],
+        );
         final errors = table.validate(schema);
         expect(errors, hasLength(1));
         expect(errors.first.constraint, 'required');
@@ -577,9 +582,9 @@ void main() {
             [null],
           ],
         );
-        final schema = CsvSchema(columns: [
-          CsvColumnDef(name: 'val', nullable: false),
-        ]);
+        final schema = CsvSchema(
+          columns: [CsvColumnDef(name: 'val', nullable: false)],
+        );
         final errors = table.validate(schema);
         expect(errors, hasLength(1));
         expect(errors.first.constraint, 'non_nullable');
@@ -592,9 +597,9 @@ void main() {
             ['thirty'],
           ],
         );
-        final schema = CsvSchema(columns: [
-          CsvColumnDef(name: 'age', type: int),
-        ]);
+        final schema = CsvSchema(
+          columns: [CsvColumnDef(name: 'age', type: int)],
+        );
         expect(table.validate(schema).first.constraint, startsWith('type'));
       });
 
@@ -605,9 +610,9 @@ void main() {
             ['bad'],
           ],
         );
-        final schema = CsvSchema(columns: [
-          CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
-        ]);
+        final schema = CsvSchema(
+          columns: [CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$')],
+        );
         expect(table.validate(schema), hasLength(1));
       });
 
@@ -618,17 +623,16 @@ void main() {
             [150],
           ],
         );
-        final schema = CsvSchema(columns: [
-          CsvColumnDef(name: 'score', validator: (v) => v is int && v <= 100),
-        ]);
+        final schema = CsvSchema(
+          columns: [
+            CsvColumnDef(name: 'score', validator: (v) => v is int && v <= 100),
+          ],
+        );
         expect(table.validate(schema), hasLength(1));
       });
 
       test('extra columns blocked', () {
-        final table = CsvTable.fromData(
-          headers: ['a', 'b'],
-          rows: [],
-        );
+        final table = CsvTable.fromData(headers: ['a', 'b'], rows: []);
         final schema = CsvSchema(
           columns: [CsvColumnDef(name: 'a')],
           allowExtraColumns: false,
@@ -697,8 +701,10 @@ void main() {
           return row;
         });
         expect(mapped.column('a'), [101, 102]);
-        expect(table.column('a'), [1, 2],
-            reason: 'map must not mutate its source');
+        expect(table.column('a'), [
+          1,
+          2,
+        ], reason: 'map must not mutate its source');
       });
 
       test('sortedBy returns a sorted copy and keeps the source order', () {

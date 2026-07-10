@@ -18,11 +18,7 @@ void main() async {
   // --- Stream decoding ---
   print('=== Stream Decoding ===');
   final decoder = CsvDecoder(const CsvConfig());
-  final csvStream = Stream.fromIterable([
-    'name,age\n',
-    'Alice,30\n',
-    'Bob,25',
-  ]);
+  final csvStream = Stream.fromIterable(['name,age\n', 'Alice,30\n', 'Bob,25']);
   await for (final row in decoder.bind(csvStream)) {
     print('Row: $row');
   }

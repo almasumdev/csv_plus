@@ -48,7 +48,8 @@ class DelimiterDetector {
       if (!qualifies) continue;
       final uniform = minCount == maxCount;
 
-      final better = bestMinCount == 0 ||
+      final better =
+          bestMinCount == 0 ||
           (uniform && !bestUniform) ||
           (uniform == bestUniform && minCount > bestMinCount);
       if (better) {
@@ -80,8 +81,8 @@ class DelimiterDetector {
       final crIdx = input.indexOf('\r');
       final endIdx =
           crIdx >= 0 && crIdx < (newlineIdx < 0 ? input.length : newlineIdx)
-              ? crIdx
-              : newlineIdx;
+          ? crIdx
+          : newlineIdx;
 
       if (endIdx > 4) {
         final delimiter = input.substring(4, endIdx);

@@ -67,17 +67,20 @@ void main() {
       });
 
       test('empty stream', () async {
-        final chunks =
-            await encoder.bind(const Stream<List<dynamic>>.empty()).toList();
+        final chunks = await encoder
+            .bind(const Stream<List<dynamic>>.empty())
+            .toList();
         expect(chunks, isEmpty);
       });
 
       test('bindBytes encodes to a UTF-8 byte stream', () async {
         final byteChunks = await encoder
-            .bindBytes(Stream.fromIterable([
-              ['a', 1],
-              ['b', 2],
-            ]))
+            .bindBytes(
+              Stream.fromIterable([
+                ['a', 1],
+                ['b', 2],
+              ]),
+            )
             .toList();
         final text = utf8.decode(byteChunks.expand((c) => c).toList());
         expect(text, 'a,1\r\nb,2');

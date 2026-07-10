@@ -24,10 +24,12 @@ void main() {
 
   // --- Schema validation ---
   print('=== Schema Validation ===');
-  final schema = CsvSchema(columns: [
-    CsvColumnDef(name: 'name', type: String, required: true, nullable: false),
-    CsvColumnDef(name: 'age', type: int, required: true, nullable: false),
-  ]);
+  final schema = CsvSchema(
+    columns: [
+      CsvColumnDef(name: 'name', type: String, required: true, nullable: false),
+      CsvColumnDef(name: 'age', type: int, required: true, nullable: false),
+    ],
+  );
 
   final table = CsvTable.fromData(
     headers: ['name', 'age'],
