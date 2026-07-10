@@ -22,7 +22,8 @@ jobs:
         run: dart pub get
 
       - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed .
+        # benchmark/ is a dev-only harness, excluded from every gate.
+        run: dart format --output=none --set-exit-if-changed lib test example
 
       - name: Analyze code
         run: dart analyze --fatal-infos

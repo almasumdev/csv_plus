@@ -30,8 +30,11 @@ jobs:
         run: dart pub get
 
       - name: Check formatting
+        # Scope to the library, tests, and examples. benchmark/ is a
+        # dev-only harness with its own pubspec and is excluded from every
+        # gate (see analysis_options.yaml and .pubignore).
         if: matrix.sdk == 'stable'
-        run: dart format --output=none --set-exit-if-changed .
+        run: dart format --output=none --set-exit-if-changed lib test example
 
       - name: Analyze code
         run: dart analyze --fatal-infos
