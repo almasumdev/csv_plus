@@ -65,7 +65,10 @@ void main() {
   print('');
   print('Throughput:');
   final mbSize = csv.length / (1024 * 1024);
-  print('  decode:        ${(mbSize * iterations / (sw1.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
-  print('  decodeStrings: ${(mbSize * iterations / (sw2.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
-  print('  decodeFlexible:${(mbSize * iterations / (sw3.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
+  print(
+      '  decode:        ${(mbSize * iterations / (sw1.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
+  print(
+      '  decodeStrings: ${(mbSize * iterations / (sw2.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
+  print(
+      '  decodeFlexible:${(mbSize * iterations / (sw3.elapsedMilliseconds / 1000)).toStringAsFixed(1)} MB/s');
 }

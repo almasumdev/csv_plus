@@ -11,3 +11,6 @@ docs/
 
 # Generated API docs
 doc/api/
+
+# Benchmark build artifacts
+*.exe

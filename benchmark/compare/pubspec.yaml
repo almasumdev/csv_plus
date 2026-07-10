@@ -1,0 +1,13 @@
+name: csv_plus_compare_benchmark
+description: Head-to-head benchmark of csv_plus against other Dart CSV packages.
+publish_to: none
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  csv: 8.0.0
+  fast_csv: 0.2.11
+  serial_csv: 0.5.2
+  csv_plus:
+    path: ../..

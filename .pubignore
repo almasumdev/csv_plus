@@ -1,0 +1,15 @@
+# .pubignore replaces .gitignore for publishing: everything here is
+# excluded from the pub.dev package.
+
+# From .gitignore
+.dart_tool/
+pubspec.lock
+docs/
+doc/api/
+
+# Development-only directories not useful to package consumers.
+# The README references the logo through an absolute GitHub URL, so
+# images/ does not need to ship in the package.
+benchmark/
+.github/
+images/
