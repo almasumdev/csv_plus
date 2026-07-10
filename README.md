@@ -25,19 +25,21 @@
 
 ## Why csv_plus?
 
-Most CSV libraries only do basic parsing. **csv_plus** gives you a complete toolkit — from raw byte-level decoding to full table operations — in a single, zero-dependency package.
+Most CSV libraries only do basic parsing. **csv_plus** gives you a complete toolkit: from raw byte-level decoding to full table operations, in a single, zero-dependency package.
 
 | | What you get |
 |---|---|
-| **Blazing fast** | Byte-level (`codeUnits`) batch parser — no regex, no string ops in hot paths |
-| **Type-smart** | Auto-infers `int`, `double`, `bool`, `null`, `String` from raw CSV data |
-| **Stream-ready** | Chunked `StreamTransformer` for processing files of any size with constant memory |
-| **50+ table methods** | Filter, sort, group, aggregate, transform — like a DataFrame for CSV |
+| **Fastest in the ecosystem** | Byte-level (`codeUnits`) parser, fastest on every workload we measure against csv, fast_csv, and serial_csv ([receipts](https://github.com/Masum-MSNR/csv_plus/tree/main/benchmark/compare)) |
+| **Type-smart, data-safe** | Auto-infers `int`, `double`, `bool`, `null`; guards keep `007`, `+1`, and 16+ digit IDs as text instead of corrupting them |
+| **One parsing semantics** | Batch and streaming decoders produce identical output, enforced by a conformance suite that splits input at every chunk boundary |
+| **Stream-ready** | Chunked `StreamTransformer` with real backpressure: constant memory even with a slow consumer |
+| **50+ table methods** | Filter, sort, group, aggregate, transform, like a DataFrame for CSV |
 | **Schema validation** | Define column types, nullability, patterns, custom validators |
 | **dart:convert** | Drop-in `Codec` adapter with `.fuse()` pipeline support |
 | **Auto-detection** | Delimiter sniffing, BOM handling, Excel `sep=` hint |
-| **Presets built-in** | CSV, TSV, Excel (`;` + BOM), pipe-delimited — one line setup |
+| **Presets built-in** | CSV, TSV, Excel (`;` + BOM), pipe-delimited, one line setup |
 | **File I/O** | Read, write, stream, append CSV files with `CsvFile` |
+| **Strict or lenient** | `strict: true` throws `CsvParseException` with row/column on malformed quotes; the default recovers like Excel |
 | **Flexible parsing** | Lenient mode for messy real-world data: trims whitespace, recovers unmatched quotes |
 
 ---
@@ -46,7 +48,7 @@ Most CSV libraries only do basic parsing. **csv_plus** gives you a complete tool
 
 ```yaml
 dependencies:
-  csv_plus: ^latest
+  csv_plus: ^1.0.0
 ```
 
 ```dart
@@ -69,9 +71,9 @@ final csv = codec.encode([
   ['Bob', 25, 88.0],
 ]);
 
-// Decode — types are automatically inferred
+// Decode: types are automatically inferred
 final rows = codec.decode(csv);
-// rows[1] == ['Alice', 30, 95.5]  ← int and double preserved
+// rows[1] == ['Alice', 30, 95.5]  (int and double preserved)
 ```
 
 ### Header-Aware Rows
@@ -82,7 +84,7 @@ print(people.first['name']); // Alice
 print(people.first['age']);  // 30 (int, not String)
 ```
 
-### CsvTable — Query & Transform
+### CsvTable: Query & Transform
 
 ```dart
 final table = CsvTable.parse('name,age,city\nAlice,30,NYC\nBob,25,LA\nEve,35,NYC');
@@ -109,11 +111,39 @@ print(table.toFormattedString()); // Pretty-printed aligned table
 ```dart
 import 'package:csv_plus/io.dart';
 
-// Stream — constant memory, any file size
+// Stream: constant memory, any file size
 await for (final row in CsvFile.stream('huge.csv')) {
   process(row);
 }
 ```
+
+Any string or byte stream works, with backpressure handled for you:
+
+```dart
+final rows = codec.decoder.bindBytes(httpResponse); // Stream<List<int>>
+```
+
+---
+
+## Benchmarks
+
+Median of 5 runs, 200k rows x 10 cols (14.3 MB) plain and 100k x 10
+quote-heavy (18.4 MB), against csv 8.0.0, fast_csv 0.2.11, and
+serial_csv 0.5.2. csv_plus is the fastest on every workload, JIT and
+AOT. Times in milliseconds (JIT):
+
+| Workload | csv 8.0.0 | fast_csv | csv_plus |
+|---|---|---|---|
+| Decode, strings | 178.5 | 120.4 | **105.6** |
+| Decode, typed | 235.4 | n/a | **96.2** |
+| Decode, quote-heavy | 143.7 | 129.4 | **87.0** |
+| Encode, typed rows | 162.1 | n/a | **131.7** |
+| decodeWithHeaders | 187.9 | n/a | **96.9** |
+
+The full tables (including AOT and serial_csv), the seeded data
+generators, and an edge-case comparison battery live in
+[benchmark/compare](https://github.com/Masum-MSNR/csv_plus/tree/main/benchmark/compare).
+Run them yourself with `dart run bench.dart`.
 
 ---
 
@@ -123,8 +153,8 @@ await for (final row in CsvFile.stream('huge.csv')) {
 
 csv_plus uses two optimized paths for every operation:
 
-- **Batch path** — `FastEncoder` / `FastDecoder` use `codeUnits` byte arrays, labeled loops, and first-byte type detection for maximum throughput
-- **Streaming path** — `CsvEncoder` / `CsvDecoder` implement `StreamTransformer` with a chunked state machine for constant-memory processing
+- **Batch path**: `FastEncoder` / `FastDecoder` use `codeUnits` byte arrays, labeled loops, and first-byte type detection for maximum throughput
+- **Streaming path**: `CsvEncoder` / `CsvDecoder` implement `StreamTransformer` with a chunked state machine for constant-memory processing
 
 ### Automatic Type Inference
 
@@ -136,15 +166,28 @@ final rows = codec.decode('name,age,active\nAlice,30,true');
 // rows[1] == ['Alice', 30, true]         (String, int, bool)
 ```
 
+Inference is guarded against silent data corruption, which most CSV
+libraries (including csv 8) get wrong:
+
+- `007`, `+1`, and values with surrounding whitespace stay strings
+- digit runs longer than 15 stay strings (exact on VM but not on the
+  web, so results are identical on every platform)
+- quoted fields are never inferred: `"42"` stays a string
+- `1e999` stays a string instead of becoming `Infinity`
+
 Disable with `dynamicTyping: false` to get all strings, or use specialized decoders:
 
 ```dart
 codec.decodeStrings(csv)   // List<List<String>>
-codec.decodeIntegers(csv)  // List<List<int>>
+codec.decodeIntegers(csv)  // List<List<int>>, throws CsvParseException on bad cells
 codec.decodeDoubles(csv)   // List<List<double>>
-codec.decodeBooleans(csv)  // List<List<bool>>
+codec.decodeBooleans(csv)  // List<List<bool>>: true/false/1/0, case-insensitive
 codec.decodeFlexible(csv)  // Lenient: trims whitespace, recovers bad quotes
 ```
+
+The typed decoders never invent data: a non-numeric or empty cell
+throws a `CsvParseException` with the row and column, unless you pass
+an explicit fill like `decodeIntegers(csv, emptyAs: 0)`.
 
 ### Configuration & Presets
 
@@ -159,6 +202,7 @@ final custom = CsvCodec(CsvConfig(
   fieldDelimiter: '::',
   quoteMode: QuoteMode.always,
   skipEmptyLines: true,
+  strict: true, // throw on malformed quotes instead of recovering
 ));
 ```
 
@@ -166,8 +210,8 @@ final custom = CsvCodec(CsvConfig(
 
 ```dart
 final schema = CsvSchema(columns: [
-  ColumnDef(name: 'email', type: String, required: true, pattern: r'@'),
-  ColumnDef(name: 'age', type: int, nullable: false),
+  CsvColumnDef(name: 'email', type: String, required: true, pattern: r'@'),
+  CsvColumnDef(name: 'age', type: int, nullable: false),
 ]);
 
 final errors = table.validate(schema);
@@ -188,18 +232,18 @@ final pipeline = adapter.fuse(utf8);
 
 ## API Overview
 
-### CsvCodec — Main Facade
+### CsvCodec: Main Facade
 
 | Decode | Encode |
 |--------|--------|
-| `decode()` — typed rows | `encode()` — mixed types |
-| `decodeWithHeaders()` — `CsvRow` list | `encodeStrings()` — string-only |
-| `decodeStrings()` — all strings | `encodeGeneric<T>()` — uniform type |
-| `decodeToTable()` — `CsvTable` | `encodeMap()` — map → 2-col CSV |
-| `decodeMap()` — 2-col → map | |
-| `decodeFlexible()` — lenient mode | |
+| `decode()`: typed rows | `encode()`: mixed types |
+| `decodeWithHeaders()`: `CsvRow` list | `encodeStrings()`: string-only |
+| `decodeStrings()`: all strings | `encodeGeneric<T>()`: uniform type |
+| `decodeToTable()`: `CsvTable` | `encodeMap()`: map to 2-col CSV |
+| `decodeMap()`: 2-col to map | |
+| `decodeFlexible()`: lenient mode | |
 
-### CsvTable — 50+ Methods
+### CsvTable: 50+ Methods
 
 | Category | Methods |
 |----------|---------|
@@ -207,20 +251,20 @@ final pipeline = adapter.fuse(utf8);
 | **Rows** | `addRow()`, `addRowFromMap()`, `insertRow()`, `removeRow()`, `removeWhere()` |
 | **Columns** | `addColumn()`, `insertColumn()`, `removeColumn()`, `renameColumn()`, `reorderColumns()` |
 | **Query** | `where()`, `firstWhere()`, `any()`, `every()`, `distinct()`, `range()`, `take()`, `skip()` |
-| **Sort** | `sortBy()`, `sortByIndex()`, `sortByMultiple()`, `sort()` |
+| **Sort** | `sortBy()`, `sortByIndex()`, `sortByMultiple()`, `sort()`, `sortedBy()` (all stable) |
 | **Aggregate** | `sum()`, `avg()`, `min()`, `max()`, `count()`, `groupBy()` |
 | **Transform** | `transformColumn()`, `map()`, `fold()` |
 | **Export** | `toCsv()`, `toMaps()`, `toList()`, `toFormattedString()`, `copy()` |
 | **Validate** | `validate()`, `conformsTo()`, `inferSchema()` |
 
-### CsvFile — File I/O
+### CsvFile: File I/O
 
 | Method | Description |
 |--------|-------------|
-| `read()` / `readSync()` | File → `CsvTable` |
-| `write()` / `writeSync()` | `CsvTable` → file |
+| `read()` / `readSync()` | file to `CsvTable` |
+| `write()` / `writeSync()` | `CsvTable` to file |
 | `stream()` | Row-by-row streaming (constant memory) |
-| `writeStream()` | Stream → file |
+| `writeStream()` | stream to file |
 | `append()` | Append rows to existing file |
 
 ---
@@ -247,7 +291,7 @@ import 'package:csv_plus/io.dart';            // File I/O (dart:io)
 | Web (dart2js / WASM) | ✅ Core (no `CsvFile`) |
 | AOT compiled | ✅ Full support |
 
-> `dart:io` is isolated in `io.dart` — core encode/decode/table works everywhere.
+> `dart:io` is isolated in `io.dart`: core encode/decode/table works everywhere.
 
 ---
 
@@ -263,7 +307,7 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License; see [LICENSE](LICENSE) for details.
 
 ---
 
