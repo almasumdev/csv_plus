@@ -1,10 +1,9 @@
-// Head-to-head CSV benchmark: csv 8.0.0, fast_csv 0.2.11, serial_csv 0.5.2,
+// Head-to-head CSV benchmark: csv 8.0.0, serial_csv 0.5.2,
 // csv_plus (local path). Median of 5 timed runs after 2 warmups.
 import 'dart:math';
 
 import 'package:csv/csv.dart' as csv8;
 import 'package:csv_plus/csv_plus.dart' as plus;
-import 'package:fast_csv/fast_csv.dart' as fcsv;
 import 'package:serial_csv/serial_csv.dart';
 
 const rowsPlain = 200000;
@@ -104,7 +103,6 @@ void main() {
   bench('csv 8.0.0 (dynamicTyping:false)', () {
     return csv8Str.decode(plainCsv).length;
   });
-  bench('fast_csv parse()', () => fcsv.parse(plainCsv).length);
   bench('csv_plus decodeStrings()', () {
     return plusCodec.decodeStrings(plainCsv).length;
   });
@@ -131,7 +129,6 @@ void main() {
 
   print('\n--- DECODE quote-heavy, all-strings mode ---');
   bench('csv 8.0.0', () => csv8Str.decode(quotedCsv).length);
-  bench('fast_csv parse()', () => fcsv.parse(quotedCsv).length);
   bench('csv_plus decodeStrings()', () {
     return plusCodec.decodeStrings(quotedCsv).length;
   });

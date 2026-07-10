@@ -51,19 +51,21 @@ correctness.
 It is the fastest general-purpose CSV package for Dart on every workload, on both
 JIT and AOT. The numbers below are a median of 5 runs against
 [`csv`](https://pub.dev/packages/csv) 8.0.0 and
-[`fast_csv`](https://pub.dev/packages/fast_csv) 0.2.11, on 200k rows x 10 cols
+[`serial_csv`](https://pub.dev/packages/serial_csv) 0.5.2, on 200k rows x 10 cols
 plain (14.3 MB) and 100k x 10 quote-heavy (18.4 MB), on the same machine:
 
-| Workload (JIT) | csv 8.0.0 | fast_csv | csv_plus |
+| Workload (JIT) | csv 8.0.0 | serial_csv | csv_plus |
 |---|---|---|---|
-| Decode, strings | 178.5 ms | 120.4 ms | **105.6 ms** |
-| Decode, typed | 235.4 ms | n/a | **96.2 ms** |
-| Decode, quote-heavy | 143.7 ms | 129.4 ms | **87.0 ms** |
-| Encode, typed rows | 162.1 ms | n/a | **131.7 ms** |
-| decodeWithHeaders | 187.9 ms | n/a | **96.9 ms** |
+| Decode, strings | 181.2 ms | 325.8 ms (own fmt) | **94.0 ms** |
+| Decode, typed | 224.9 ms | 111.7 ms (own fmt) | **96.8 ms** |
+| Decode, quote-heavy | 133.7 ms | n/a | **77.6 ms** |
+| Encode, typed rows | 153.2 ms | 141.8 ms | **125.2 ms** |
+| decodeWithHeaders | 178.5 ms | n/a | **95.4 ms** |
 
-The full tables (AOT included, plus serial_csv), the seeded data generators, and
-an edge-case comparison battery live in
+`serial_csv` reads and writes only its own strict format rather than general
+RFC 4180 CSV, so its decode rows (marked `own fmt`) are not directly comparable.
+The full tables with AOT numbers, the seeded data generators, and an edge-case
+comparison battery live in
 [`benchmark/compare/`](https://github.com/almasumdev/csv_plus/tree/main/benchmark/compare).
 Timings vary by hardware, so reproduce them on your own machine:
 
@@ -381,7 +383,7 @@ ground; csv_plus adds speed, a table layer, and stricter correctness.
 
 | | csv_plus | csv |
 |---|---|---|
-| Decode speed (typed, JIT) | **96 ms** | 235 ms |
+| Decode speed (typed, JIT) | **97 ms** | 225 ms |
 | Parsing semantics | **One truth across batch & streaming**, conformance-tested | Batch and streaming |
 | Type inference | **Guarded** (`007`, `+1`, big ids stay text) | Coerces (may corrupt ids) |
 | Table / query / schema layer | **Yes** | No |
@@ -438,7 +440,3 @@ csv_plus grows with its community; every contributor is listed here:
 </a>
 
 Want to help? Pull requests are welcome; see [Support and feedback](#support-and-feedback).
-
----
-
-**Keywords:** CSV parser, CSV serialization, CSV deserialization, CSV encoding, CSV decoding, data processing, file handling, TSV, pipe-delimited, RFC 4180, streaming CSV, type inference, Dart CSV library, Flutter CSV.

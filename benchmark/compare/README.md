@@ -4,8 +4,7 @@ Reproducible comparison of csv_plus against the other Dart CSV packages.
 Every performance claim in the main README points here.
 
 Pinned versions (see [pubspec.yaml](pubspec.yaml)): csv 8.0.0,
-fast_csv 0.2.11, serial_csv 0.5.2, csv_plus from this repository
-(v1.0.0).
+serial_csv 0.5.2, csv_plus from this repository (v1.0.0).
 
 ## Method
 
@@ -15,31 +14,31 @@ dead-code elimination. Seeded generators produce two datasets:
 100,000 rows x 10 cols of quote-heavy text with embedded commas, quotes,
 and newlines (18.4 MB). See [bench.dart](bench.dart).
 
-## Results, 2026-07-10 (Windows 11 x64, Dart stable)
+## Results, 2026-07-11 (Windows 11 x64, Dart stable)
 
 ### JIT (`dart run bench.dart`)
 
-| Workload | csv 8.0.0 | fast_csv | serial_csv | csv_plus |
-|---|---|---|---|---|
-| Decode plain, strings | 178.5 | 120.4 | 331.9 (own fmt) | **105.6** |
-| Decode plain, typed | 235.4 | n/a | 117.8 (own fmt) | **96.2** |
-| Decode plain, autodetect on | 262.0 | n/a | n/a | **93.1** |
-| Decode quote-heavy, strings | 143.7 | 129.4 | n/a | **87.0** |
-| Encode plain (typed rows) | 162.1 | n/a | 160.4 | **131.7** |
-| Encode quote-heavy | 188.4 | n/a | n/a | **111.1** |
-| decodeWithHeaders | 187.9 | n/a | n/a | **96.9** |
+| Workload | csv 8.0.0 | serial_csv | csv_plus |
+|---|---|---|---|
+| Decode plain, strings | 181.2 | 325.8 (own fmt) | **94.0** |
+| Decode plain, typed | 224.9 | 111.7 (own fmt) | **96.8** |
+| Decode plain, autodetect on | 245.1 | n/a | **90.5** |
+| Decode quote-heavy, strings | 133.7 | n/a | **77.6** |
+| Encode plain (typed rows) | 153.2 | 141.8 | **125.2** |
+| Encode quote-heavy | 154.7 | n/a | **99.4** |
+| decodeWithHeaders | 178.5 | n/a | **95.4** |
 
 ### AOT (`dart compile exe bench.dart`)
 
-| Workload | csv 8.0.0 | fast_csv | serial_csv | csv_plus |
-|---|---|---|---|---|
-| Decode plain, strings | 175.2 | 124.0 | 397.3 (own fmt) | **95.9** |
-| Decode plain, typed | 289.5 | n/a | 125.1 (own fmt) | **113.1** |
-| Decode plain, autodetect on | 242.9 | n/a | n/a | **98.6** |
-| Decode quote-heavy, strings | 140.9 | 120.9 | n/a | **87.4** |
-| Encode plain (typed rows) | 151.9 | n/a | 170.3 | **128.0** |
-| Encode quote-heavy | 159.2 | n/a | n/a | **110.8** |
-| decodeWithHeaders | 184.7 | n/a | n/a | **110.8** |
+| Workload | csv 8.0.0 | serial_csv | csv_plus |
+|---|---|---|---|
+| Decode plain, strings | 194.0 | 363.1 (own fmt) | **94.0** |
+| Decode plain, typed | 242.2 | 119.0 (own fmt) | **97.3** |
+| Decode plain, autodetect on | 251.5 | n/a | **109.0** |
+| Decode quote-heavy, strings | 136.3 | n/a | **86.8** |
+| Encode plain (typed rows) | 163.1 | 177.3 | **129.7** |
+| Encode quote-heavy | 170.9 | n/a | **106.4** |
+| decodeWithHeaders | 191.5 | n/a | **106.0** |
 
 All times in milliseconds; bold marks the fastest. csv_plus is the
 fastest on every workload, on both compilers. serial_csv decodes only
@@ -53,7 +52,7 @@ Two notes for honest reading:
   roughly halved.
 - 1.0.0's typed decode carries the cost of its data-loss guards
   (leading zeros, 15-digit limit, finiteness checks), a few percent
-  versus the unguarded v0.0.2 scanner. It remains about 2.4x faster
+  versus the unguarded v0.0.2 scanner. It remains about 2.3x faster
   than csv 8's typed decode.
 
 ## Edge-case comparison

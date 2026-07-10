@@ -3,7 +3,6 @@
 // to expose divergence between the two paths.
 import 'package:csv/csv.dart' as csv8;
 import 'package:csv_plus/csv_plus.dart' as plus;
-import 'package:fast_csv/fast_csv.dart' as fcsv;
 
 const cases = <String, String>{
   'basic CRLF': 'a,b\r\nc,d',
@@ -63,7 +62,6 @@ void main() {
     print(attempt('  csv8 str      ', () => c8s.decode(input)));
     print(attempt('  csv8 typed    ', () => c8t.decode(input)));
     print(attempt('  csv8 auto+t   ', () => c8auto.decode(input)));
-    print(attempt('  fast_csv      ', () => fcsv.parse(input)));
     print(attempt('  plus strings  ', () => pStr.decodeStrings(input)));
     print(attempt('  plus typed    ', () => pStr.decode(input)));
     print(attempt('  plus auto+t   ', () => pAuto.decode(input)));

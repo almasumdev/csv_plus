@@ -7,7 +7,6 @@ environment:
 
 dependencies:
   csv: 8.0.0
-  fast_csv: 0.2.11
   serial_csv: 0.5.2
   csv_plus:
     path: ../..
