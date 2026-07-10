@@ -3,7 +3,7 @@ import '../core/csv_exception.dart';
 /// Defines constraints for CSV table validation.
 class CsvSchema {
   /// Column definitions.
-  final List<ColumnDef> columns;
+  final List<CsvColumnDef> columns;
 
   /// Whether extra columns (not in schema) are allowed.
   final bool allowExtraColumns;
@@ -21,7 +21,7 @@ class CsvSchema {
   ///
   /// Detects column types, nullability, and required status from actual values.
   factory CsvSchema.infer(List<String> headers, List<List<dynamic>> rows) {
-    final columns = <ColumnDef>[];
+    final columns = <CsvColumnDef>[];
     for (var c = 0; c < headers.length; c++) {
       Type? common;
       var hasNull = false;
@@ -43,7 +43,7 @@ class CsvSchema {
         }
       }
 
-      columns.add(ColumnDef(
+      columns.add(CsvColumnDef(
         name: headers[c],
         type: allNull ? null : common,
         required: true,
@@ -161,7 +161,7 @@ class CsvSchema {
 }
 
 /// Defines a single column's constraints.
-class ColumnDef {
+class CsvColumnDef {
   /// Column name (header).
   final String name;
 
@@ -180,7 +180,7 @@ class ColumnDef {
   /// Regex pattern the string value must match.
   final String? pattern;
 
-  const ColumnDef({
+  const CsvColumnDef({
     required this.name,
     this.type,
     this.required = true,
@@ -189,3 +189,7 @@ class ColumnDef {
     this.pattern,
   });
 }
+
+/// Former name of [CsvColumnDef], kept for source compatibility.
+@Deprecated('Use CsvColumnDef instead')
+typedef ColumnDef = CsvColumnDef;

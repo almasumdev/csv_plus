@@ -9,6 +9,14 @@ import 'csv_schema.dart';
 ///
 /// Query, sort, transform, and aggregate operations are available
 /// via extensions from the `query/` and `transform/` layers.
+///
+/// ## Mutation rule
+///
+/// Methods that return a [CsvTable] (`where`, `range`, `take`, `skip`,
+/// `distinct`, `map`, `sortedBy`, `copy`) return a new table and leave
+/// this one untouched. Methods that return `void` (`sortBy`, `addRow`,
+/// `addColumn`, `removeColumn`, and the other structural operations)
+/// mutate this table in place.
 class CsvTable {
   List<String> _headers;
   final List<List<dynamic>> _data;
@@ -43,14 +51,12 @@ class CsvTable {
   }
 
   /// Parse from CSV string.
+  ///
+  /// The first row becomes the headers and is read as raw strings (a
+  /// header named `01` stays `01`); data rows follow
+  /// [CsvConfig.dynamicTyping].
   factory CsvTable.parse(String csv, {CsvConfig config = const CsvConfig()}) {
-    final allRows =
-        CsvCodec(config.copyWith(hasHeader: false)).decode(csv);
-    if (allRows.isEmpty) return CsvTable.fromData(headers: [], rows: []);
-
-    final headers = allRows.first.map((e) => e?.toString() ?? '').toList();
-    final data = allRows.skip(1).toList();
-    return CsvTable.fromData(headers: headers, rows: data);
+    return CsvCodec(config).decodeToTable(csv);
   }
 
   /// Create empty table with column definitions.
@@ -58,18 +64,28 @@ class CsvTable {
       : _headers = List<String>.from(headers),
         _data = [];
 
-  /// Internal constructor for extensions. Creates without copying data.
+  /// Internal constructor for extensions. Creates without copying data:
+  /// the caller must hand over freshly allocated lists it no longer uses.
   CsvTable.internal(this._headers, this._data);
 
   // --- Extension Accessors ---
 
-  /// Direct access to underlying data rows.
+  /// Direct access to the underlying data rows, without copying.
+  ///
+  /// This is an unchecked escape hatch for the query/transform extensions
+  /// and performance-critical code. Mutations through it bypass every
+  /// invariant (row width, header alignment); prefer the typed row and
+  /// column APIs.
   List<List<dynamic>> get rawData => _data;
 
-  /// Direct access to mutable headers list.
+  /// Direct access to the mutable headers list, without copying.
+  ///
+  /// Same contract as [rawData]: unchecked, invariants are the caller's
+  /// responsibility. Prefer [headers] for reading.
   List<String> get mutableHeaders => _headers;
 
-  /// Replace headers list.
+  /// Replace headers list. The new list is not validated against the
+  /// current column count.
   void setHeaders(List<String> h) => _headers = h;
 
   // --- Properties ---
@@ -84,8 +100,9 @@ class CsvTable {
   int get rowCount => _data.length;
 
   /// Number of columns.
-  int get columnCount =>
-      _headers.isNotEmpty ? _headers.length : (_data.isNotEmpty ? _data.first.length : 0);
+  int get columnCount => _headers.isNotEmpty
+      ? _headers.length
+      : (_data.isNotEmpty ? _data.first.length : 0);
 
   /// Whether the table has no data rows.
   bool get isEmpty => _data.isEmpty;
@@ -297,7 +314,8 @@ class CsvTable {
   String toFormattedString({int maxRows = 20, int maxColumnWidth = 30}) {
     final allRows = <List<String>>[];
     if (hasHeaders) allRows.add(_headers);
-    final previewData = _data.length > maxRows ? _data.sublist(0, maxRows) : _data;
+    final previewData =
+        _data.length > maxRows ? _data.sublist(0, maxRows) : _data;
     for (final row in previewData) {
       allRows.add(row.map((c) {
         final s = c?.toString() ?? 'null';
@@ -309,7 +327,8 @@ class CsvTable {
 
     if (allRows.isEmpty) return '(empty table)';
 
-    final colCount = allRows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
+    final colCount =
+        allRows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
     final widths = List.filled(colCount, 0);
     for (final row in allRows) {
       for (var i = 0; i < row.length; i++) {
@@ -343,23 +362,39 @@ class CsvTable {
 
   // --- Helpers ---
 
-  /// Build header name → index map, or null if no headers.
+  /// Build header name-to-index map, or null if no headers.
   Map<String, int>? buildHeaderMap() {
     if (_headers.isEmpty) return null;
     return {for (var i = 0; i < _headers.length; i++) _headers[i]: i};
   }
 
-  /// Compare two dynamic values with null handling.
+  /// Compare two dynamic values with a documented total order.
+  ///
+  /// Nulls sort last regardless of direction. Values of the same type
+  /// compare naturally. Mixed types compare by type rank: numbers, then
+  /// strings, then booleans, then everything else (by `toString`), so a
+  /// mixed column sorts numbers before their string look-alikes instead
+  /// of comparing `"10" < "9"` lexicographically.
   static int compareValues(dynamic a, dynamic b, bool ascending) {
     final multiplier = ascending ? 1 : -1;
     if (a == null && b == null) return 0;
-    if (a == null) return 1 * multiplier;
-    if (b == null) return -1 * multiplier;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    final rankA = _typeRank(a);
+    final rankB = _typeRank(b);
+    if (rankA != rankB) return (rankA - rankB) * multiplier;
     if (a is num && b is num) return a.compareTo(b) * multiplier;
     if (a is String && b is String) return a.compareTo(b) * multiplier;
     if (a is bool && b is bool) {
       return (a == b ? 0 : (a ? 1 : -1)) * multiplier;
     }
     return a.toString().compareTo(b.toString()) * multiplier;
+  }
+
+  static int _typeRank(dynamic v) {
+    if (v is num) return 0;
+    if (v is String) return 1;
+    if (v is bool) return 2;
+    return 3;
   }
 }

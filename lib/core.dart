@@ -2,10 +2,10 @@
 ///
 /// Contains the shared foundation used across all layers:
 ///
-/// - [CsvConfig] — immutable configuration with presets
+/// - [CsvConfig]: immutable configuration with presets
 ///   ([CsvConfig.excel], [CsvConfig.tsv], [CsvConfig.pipe]).
-/// - [QuoteMode] — controls when fields are quoted during encoding.
-/// - [CsvException], [CsvParseException], [CsvValidationException] —
+/// - [QuoteMode]: controls when fields are quoted during encoding.
+/// - [CsvException], [CsvParseException], [CsvValidationException]:
 ///   typed exception hierarchy.
 library;
 

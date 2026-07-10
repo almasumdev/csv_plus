@@ -1,9 +1,10 @@
 /// Smoke test: verify every public API function is callable.
-/// This is NOT a correctness test — just confirms the API surface compiles
+/// This is NOT a correctness test; it just confirms the API surface compiles
 /// and every method is accessible from a single import.
 library;
 
 import 'package:csv_plus/csv_plus.dart';
+import 'package:csv_plus/decoder.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -52,7 +53,7 @@ void main() {
     });
   });
 
-  group('CsvCodec — main facade', () {
+  group('CsvCodec Facade', () {
     test('constructors', () {
       const c1 = CsvCodec();
       const c2 = CsvCodec.excel();
@@ -81,9 +82,21 @@ void main() {
 
     test('encode methods', () {
       final codec = CsvCodec();
-      expect(codec.encode([['a', 1]]), isNotEmpty);
-      expect(codec.encodeStrings([['a', 'b']]), isNotEmpty);
-      expect(codec.encodeGeneric([[1, 2]]), isNotEmpty);
+      expect(
+          codec.encode([
+            ['a', 1]
+          ]),
+          isNotEmpty);
+      expect(
+          codec.encodeStrings([
+            ['a', 'b']
+          ]),
+          isNotEmpty);
+      expect(
+          codec.encodeGeneric([
+            [1, 2]
+          ]),
+          isNotEmpty);
     });
 
     test('table and map methods', () {
@@ -110,7 +123,10 @@ void main() {
   group('CsvCodecAdapter (dart:convert)', () {
     test('codec interface', () {
       final adapter = CsvCodecAdapter();
-      final encoded = adapter.encoder.convert([['a', 'b'], [1, 2]]);
+      final encoded = adapter.encoder.convert([
+        ['a', 'b'],
+        [1, 2]
+      ]);
       final decoded = adapter.decoder.convert(encoded);
       expect(decoded, isNotEmpty);
     });
@@ -120,9 +136,21 @@ void main() {
     test('all encode methods', () {
       const enc = FastEncoder();
       const cfg = CsvConfig();
-      expect(enc.encode([['a', 1]], cfg), isNotEmpty);
-      expect(enc.encodeStrings([['a', 'b']], cfg), isNotEmpty);
-      expect(enc.encodeGeneric([[1, 2]], cfg), isNotEmpty);
+      expect(
+          enc.encode([
+            ['a', 1]
+          ], cfg),
+          isNotEmpty);
+      expect(
+          enc.encodeStrings([
+            ['a', 'b']
+          ], cfg),
+          isNotEmpty);
+      expect(
+          enc.encodeGeneric([
+            [1, 2]
+          ], cfg),
+          isNotEmpty);
       expect(enc.encodeMap({'key': 'val'}, cfg), isNotEmpty);
     });
   });
@@ -130,7 +158,11 @@ void main() {
   group('CsvEncoder (streaming)', () {
     test('convert and encodeField', () {
       const enc = CsvEncoder();
-      expect(enc.convert([['a', 'b']]), isNotEmpty);
+      expect(
+          enc.convert([
+            ['a', 'b']
+          ]),
+          isNotEmpty);
       expect(
         CsvEncoder.encodeField('hello, world',
             fieldDelimiter: ',',
@@ -192,11 +224,24 @@ void main() {
 
   group('CsvTable', () {
     test('constructors', () {
-      final t1 = CsvTable([['a', 1], ['b', 2]]);
-      final t2 = CsvTable.withHeaders([['name', 'age'], ['Alice', 30]]);
-      final t3 = CsvTable.fromData(
-          headers: ['name'], rows: [['Alice'], ['Bob']]);
-      final t4 = CsvTable.fromMaps([{'name': 'Alice'}, {'name': 'Bob'}]);
+      final t1 = CsvTable([
+        ['a', 1],
+        ['b', 2]
+      ]);
+      final t2 = CsvTable.withHeaders([
+        ['name', 'age'],
+        ['Alice', 30]
+      ]);
+      final t3 = CsvTable.fromData(headers: [
+        'name'
+      ], rows: [
+        ['Alice'],
+        ['Bob']
+      ]);
+      final t4 = CsvTable.fromMaps([
+        {'name': 'Alice'},
+        {'name': 'Bob'}
+      ]);
       final t5 = CsvTable.parse(csv);
       final t6 = CsvTable.empty(headers: ['a', 'b']);
       expect(t1.rowCount, 2);
@@ -253,7 +298,10 @@ void main() {
       expect(t.rowCount, count + 3);
       t.removeRow(0);
       expect(t.rowCount, count + 2);
-      t.addRows([['E', 1, true], ['F', 2, false]]);
+      t.addRows([
+        ['E', 1, true],
+        ['F', 2, false]
+      ]);
       t.removeWhere((row) => row['name'] == 'E');
     });
 
@@ -342,25 +390,30 @@ void main() {
     test('infer and validate', () {
       final schema = CsvSchema.infer(
         ['name', 'age'],
-        [['Alice', 30], ['Bob', 25]],
+        [
+          ['Alice', 30],
+          ['Bob', 25]
+        ],
       );
       expect(schema.columns, hasLength(2));
       final errors = schema.validate(
         ['name', 'age'],
-        [['Alice', 30]],
+        [
+          ['Alice', 30]
+        ],
       );
       expect(errors, isEmpty);
     });
 
-    test('ColumnDef', () {
-      const col = ColumnDef(name: 'age', type: int, required: true);
+    test('CsvColumnDef', () {
+      const col = CsvColumnDef(name: 'age', type: int, required: true);
       expect(col.name, 'age');
       expect(col.type, int);
       expect(col.required, true);
     });
   });
 
-  group('Query — filtering', () {
+  group('Query Filtering', () {
     test('all filter methods', () {
       final t = CsvTable.parse(csv);
       expect(t.where((row) => row['name'] == 'Alice').rowCount, 1);
@@ -374,7 +427,7 @@ void main() {
     });
   });
 
-  group('Query — sorting', () {
+  group('Query Sorting', () {
     test('all sort methods', () {
       final t = CsvTable.parse(csv);
       t.sortBy('name');
@@ -386,7 +439,7 @@ void main() {
     });
   });
 
-  group('Transform — manipulation', () {
+  group('Transform Manipulation', () {
     test('column operations', () {
       final t = CsvTable.parse(csv);
       t.addColumn('score', defaultValue: 0);
@@ -413,7 +466,7 @@ void main() {
     });
   });
 
-  group('Transform — aggregation', () {
+  group('Transform Aggregation', () {
     test('all aggregation methods', () {
       final t = CsvTable.parse(csv);
       expect(t.count('name'), t.rowCount);

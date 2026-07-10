@@ -7,8 +7,8 @@ import 'dart:collection';
 ///
 /// ```dart
 /// final row = CsvRow(['Alice', 30], {'name': 0, 'age': 1});
-/// print(row[0]);       // 'Alice'  — positional
-/// print(row['age']);    // 30       — by header
+/// print(row[0]);       // 'Alice'  (positional)
+/// print(row['age']);    // 30       (by header)
 /// row.set('age', 31);  // named write
 /// ```
 ///
@@ -64,7 +64,8 @@ class CsvRow extends ListBase<dynamic> {
   }
 
   /// Whether this row has a column with the given [header].
-  bool containsHeader(String header) => _headerMap?.containsKey(header) ?? false;
+  bool containsHeader(String header) =>
+      _headerMap?.containsKey(header) ?? false;
 
   /// Convert to `{header: value}` map. Empty map if no headers.
   Map<String, dynamic> toMap() {

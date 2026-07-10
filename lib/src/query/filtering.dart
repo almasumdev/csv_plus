@@ -7,8 +7,7 @@ extension CsvTableFiltering on CsvTable {
   /// Filter rows matching predicate. Returns new [CsvTable].
   CsvTable where(bool Function(CsvRow row) test) {
     final headerMap = buildHeaderMap();
-    final filtered =
-        rawData.where((r) => test(CsvRow(r, headerMap))).toList();
+    final filtered = rawData.where((r) => test(CsvRow(r, headerMap))).toList();
     return CsvTable.internal(
       List<String>.from(headers),
       filtered.map((r) => List<dynamic>.from(r)).toList(),
@@ -53,6 +52,9 @@ extension CsvTableFiltering on CsvTable {
   CsvTable skip(int count) => range(count.clamp(0, rawData.length));
 
   /// Get distinct rows based on all fields or specific columns.
+  ///
+  /// Keys are type-aware: the int `1` and the string `"1"` are distinct
+  /// values, and string content cannot forge a key collision.
   CsvTable distinct({List<String>? columns}) {
     final seen = <String>{};
     final result = <List<dynamic>>[];
@@ -67,16 +69,46 @@ extension CsvTableFiltering on CsvTable {
     }
 
     for (final row in rawData) {
-      final key = colIndices != null
-          ? colIndices
-              .map((i) => i < row.length ? row[i] : null)
-              .join('\x00')
-          : row.join('\x00');
-      if (seen.add(key)) {
+      final values = colIndices != null
+          ? colIndices.map((i) => i < row.length ? row[i] : null)
+          : row;
+      if (seen.add(_distinctKey(values))) {
         result.add(List<dynamic>.from(row));
       }
     }
 
     return CsvTable.internal(List<String>.from(headers), result);
+  }
+
+  /// Build a collision-proof key: each cell is tagged with its type and
+  /// length-prefixed, so `1`, `1.0`, `"1"`, and embedded separators all
+  /// produce different keys.
+  static String _distinctKey(Iterable<dynamic> values) {
+    final buf = StringBuffer();
+    for (final v in values) {
+      if (v == null) {
+        buf.write('n;');
+      } else if (v is bool) {
+        buf.write(v ? 'b1;' : 'b0;');
+      } else if (v is int) {
+        buf
+          ..write('i')
+          ..write(v)
+          ..write(';');
+      } else if (v is double) {
+        buf
+          ..write('d')
+          ..write(v)
+          ..write(';');
+      } else {
+        final s = v.toString();
+        buf
+          ..write(v is String ? 's' : 'o')
+          ..write(s.length)
+          ..write(':')
+          ..write(s);
+      }
+    }
+    return buf.toString();
   }
 }

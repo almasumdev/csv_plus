@@ -1,6 +1,6 @@
 /// Complete, high-performance CSV package for Dart.
 ///
-/// This is the main entry point — a single import gives access to
+/// This is the main entry point: a single import gives access to
 /// encoding, decoding, table manipulation, querying, and transforms.
 ///
 /// ## Quick Start
@@ -60,11 +60,12 @@ export 'src/codec/codec_adapter.dart';
 export 'src/encoder/fast_encoder.dart';
 export 'src/encoder/csv_encoder.dart';
 
-// Decoder
+// Decoder. DelimiterDetector is an implementation detail of autodetect
+// and stays out of the default namespace; import
+// `package:csv_plus/decoder.dart` to use it directly.
 export 'src/decoder/fast_decoder.dart';
 export 'src/decoder/fast_decoder_ext.dart';
 export 'src/decoder/csv_decoder.dart';
-export 'src/decoder/delimiter_detector.dart';
 
 // Table
 export 'src/table/csv_row.dart';
@@ -80,4 +81,4 @@ export 'src/query/sorting.dart';
 export 'src/transform/manipulation.dart';
 export 'src/transform/aggregation.dart';
 
-// I/O (dart:io — import separately: `import 'package:csv_plus/io.dart';`)
+// I/O (dart:io; import separately: `import 'package:csv_plus/io.dart';`)

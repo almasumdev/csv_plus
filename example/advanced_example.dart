@@ -1,4 +1,5 @@
 import 'package:csv_plus/csv_plus.dart';
+import 'package:csv_plus/decoder.dart';
 
 /// Advanced features: flexible decoding, type-specific decoding,
 /// schema validation, codec adapter.
@@ -24,8 +25,8 @@ void main() {
   // --- Schema validation ---
   print('=== Schema Validation ===');
   final schema = CsvSchema(columns: [
-    ColumnDef(name: 'name', type: String, required: true, nullable: false),
-    ColumnDef(name: 'age', type: int, required: true, nullable: false),
+    CsvColumnDef(name: 'name', type: String, required: true, nullable: false),
+    CsvColumnDef(name: 'age', type: int, required: true, nullable: false),
   ]);
 
   final table = CsvTable.fromData(

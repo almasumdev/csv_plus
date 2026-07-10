@@ -40,8 +40,8 @@ void main() {
   group('CsvSchema', () {
     test('validate returns empty list for valid data', () {
       final schema = CsvSchema(columns: [
-        ColumnDef(name: 'name', type: String),
-        ColumnDef(name: 'age', type: int),
+        CsvColumnDef(name: 'name', type: String),
+        CsvColumnDef(name: 'age', type: int),
       ]);
       final errors = schema.validate(
         ['name', 'age'],
@@ -54,7 +54,7 @@ void main() {
 
     test('validate detects missing required column', () {
       final schema = CsvSchema(columns: [
-        ColumnDef(name: 'required_col', required: true),
+        CsvColumnDef(name: 'required_col', required: true),
       ]);
       final errors = schema.validate(['other'], []);
       expect(errors, hasLength(1));
@@ -62,7 +62,7 @@ void main() {
 
     test('validate skips missing optional column', () {
       final schema = CsvSchema(columns: [
-        ColumnDef(name: 'optional_col', required: false),
+        CsvColumnDef(name: 'optional_col', required: false),
       ]);
       final errors = schema.validate(['other'], []);
       expect(errors, isEmpty);
@@ -71,7 +71,7 @@ void main() {
     test('allowMissingColumns respected', () {
       final schema = CsvSchema(
         columns: [
-          ColumnDef(name: 'a', required: true),
+          CsvColumnDef(name: 'a', required: true),
         ],
         allowMissingColumns: true,
       );
@@ -82,7 +82,7 @@ void main() {
       // Without the flag, missing required column is an error
       final strict = CsvSchema(
         columns: [
-          ColumnDef(name: 'a', required: true),
+          CsvColumnDef(name: 'a', required: true),
         ],
         allowMissingColumns: false,
       );
@@ -92,7 +92,7 @@ void main() {
 
     test('custom validator integration', () {
       final schema = CsvSchema(columns: [
-        ColumnDef(
+        CsvColumnDef(
           name: 'val',
           validator: (v) => v is int && v > 0,
         ),

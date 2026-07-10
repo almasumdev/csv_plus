@@ -16,7 +16,7 @@
 ///
 /// **Platform note**: This library imports `dart:io` and is only available
 /// on VM and AOT targets. It is NOT exported from the main `csv_plus.dart`
-/// barrel — import it separately.
+/// barrel; import it separately.
 library;
 
 export 'src/io/csv_file.dart';

@@ -71,8 +71,7 @@ void main() {
 
     group('properties', () {
       test('columnCount from headers', () {
-        final table = CsvTable.fromData(
-            headers: ['a', 'b', 'c'], rows: []);
+        final table = CsvTable.fromData(headers: ['a', 'b', 'c'], rows: []);
         expect(table.columnCount, 3);
       });
 
@@ -390,8 +389,8 @@ void main() {
       });
 
       test('sort with custom comparator', () {
-        table.sort((a, b) =>
-            (a['name'] as String).compareTo(b['name'] as String));
+        table.sort(
+            (a, b) => (a['name'] as String).compareTo(b['name'] as String));
         expect(table.cell(0, 0), 'Alice');
       });
     });
@@ -537,7 +536,7 @@ void main() {
         expect(csv, 'a,b\r\n1,2');
       });
 
-      test('parse → toCsv round-trip', () {
+      test('parse and toCsv round-trip preserves data', () {
         const input = 'name,age\r\nAlice,30\r\nBob,25';
         final table = CsvTable.parse(input);
         expect(table.toCsv(), input);
@@ -553,8 +552,8 @@ void main() {
           ],
         );
         final schema = CsvSchema(columns: [
-          ColumnDef(name: 'name', type: String),
-          ColumnDef(name: 'age', type: int),
+          CsvColumnDef(name: 'name', type: String),
+          CsvColumnDef(name: 'age', type: int),
         ]);
         expect(table.validate(schema), isEmpty);
         expect(table.conformsTo(schema), true);
@@ -563,8 +562,8 @@ void main() {
       test('missing required column', () {
         final table = CsvTable.fromData(headers: ['name'], rows: []);
         final schema = CsvSchema(columns: [
-          ColumnDef(name: 'name'),
-          ColumnDef(name: 'age', required: true),
+          CsvColumnDef(name: 'name'),
+          CsvColumnDef(name: 'age', required: true),
         ]);
         final errors = table.validate(schema);
         expect(errors, hasLength(1));
@@ -579,7 +578,7 @@ void main() {
           ],
         );
         final schema = CsvSchema(columns: [
-          ColumnDef(name: 'val', nullable: false),
+          CsvColumnDef(name: 'val', nullable: false),
         ]);
         final errors = table.validate(schema);
         expect(errors, hasLength(1));
@@ -594,7 +593,7 @@ void main() {
           ],
         );
         final schema = CsvSchema(columns: [
-          ColumnDef(name: 'age', type: int),
+          CsvColumnDef(name: 'age', type: int),
         ]);
         expect(table.validate(schema).first.constraint, startsWith('type'));
       });
@@ -607,7 +606,7 @@ void main() {
           ],
         );
         final schema = CsvSchema(columns: [
-          ColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
+          CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
         ]);
         expect(table.validate(schema), hasLength(1));
       });
@@ -620,7 +619,7 @@ void main() {
           ],
         );
         final schema = CsvSchema(columns: [
-          ColumnDef(name: 'score', validator: (v) => v is int && v <= 100),
+          CsvColumnDef(name: 'score', validator: (v) => v is int && v <= 100),
         ]);
         expect(table.validate(schema), hasLength(1));
       });
@@ -631,7 +630,7 @@ void main() {
           rows: [],
         );
         final schema = CsvSchema(
-          columns: [ColumnDef(name: 'a')],
+          columns: [CsvColumnDef(name: 'a')],
           allowExtraColumns: false,
         );
         final errors = table.validate(schema);
@@ -681,6 +680,122 @@ void main() {
       test('toFormattedString empty', () {
         final table = CsvTable.empty();
         expect(table.toFormattedString(), '(empty table)');
+      });
+    });
+
+    group('copy-returning operations leave the source untouched', () {
+      test('map cannot corrupt the source through row writes', () {
+        final table = CsvTable.fromData(
+          headers: ['a'],
+          rows: [
+            [1],
+            [2],
+          ],
+        );
+        final mapped = table.map((row) {
+          row[0] = (row[0] as int) + 100;
+          return row;
+        });
+        expect(mapped.column('a'), [101, 102]);
+        expect(table.column('a'), [1, 2],
+            reason: 'map must not mutate its source');
+      });
+
+      test('sortedBy returns a sorted copy and keeps the source order', () {
+        final table = CsvTable.fromData(
+          headers: ['n'],
+          rows: [
+            [3],
+            [1],
+            [2],
+          ],
+        );
+        final sorted = table.sortedBy('n');
+        expect(sorted.column('n'), [1, 2, 3]);
+        expect(table.column('n'), [3, 1, 2]);
+      });
+    });
+
+    group('sorting order guarantees', () {
+      test('sorts are stable: a second sort preserves prior order', () {
+        final table = CsvTable.fromData(
+          headers: ['grp', 'name'],
+          rows: [
+            ['b', 'x'],
+            ['a', 'z'],
+            ['a', 'y'],
+            ['b', 'w'],
+          ],
+        );
+        table.sortBy('name');
+        table.sortBy('grp');
+        expect(table.column('name'), ['y', 'z', 'w', 'x']);
+      });
+
+      test('nulls sort last in both directions', () {
+        final table = CsvTable.fromData(
+          headers: ['n'],
+          rows: [
+            [2],
+            [null],
+            [1],
+          ],
+        );
+        table.sortBy('n');
+        expect(table.column('n'), [1, 2, null]);
+        table.sortBy('n', ascending: false);
+        expect(table.column('n'), [2, 1, null]);
+      });
+
+      test('mixed types sort numbers before their string look-alikes', () {
+        final table = CsvTable.fromData(
+          headers: ['v'],
+          rows: [
+            ['9'],
+            [10],
+            ['10'],
+            [9],
+          ],
+        );
+        table.sortBy('v');
+        expect(table.column('v'), [9, 10, '10', '9']);
+      });
+    });
+
+    group('distinct keys', () {
+      test('distinguishes equal-looking values of different types', () {
+        final table = CsvTable.fromData(
+          headers: ['v'],
+          rows: [
+            [1],
+            ['1'],
+            [1.0],
+            [true],
+            ['true'],
+          ],
+        );
+        // int 1 and double 1.0 are equal in Dart collections, and both
+        // differ from the string form.
+        expect(table.distinct().rowCount, 5);
+      });
+
+      test('string content cannot forge a key collision', () {
+        final table = CsvTable.fromData(
+          headers: ['a', 'b'],
+          rows: [
+            ['x\x00y', 'z'],
+            ['x', 'y\x00z'],
+          ],
+        );
+        expect(table.distinct().rowCount, 2);
+      });
+    });
+
+    group('parse header consistency', () {
+      test('headers are read raw, so 01 stays 01', () {
+        final table = CsvTable.parse('01,name\n1,Alice');
+        expect(table.headers, ['01', 'name']);
+        expect(table.cell(0, 0), 1);
       });
     });
   });

@@ -1,6 +1,6 @@
 /// 2D table data structure for CSV data.
 ///
-/// [CsvTable] is the primary class — a mutable 2D data structure with
+/// [CsvTable] is the primary class: a mutable 2D data structure with
 /// optional column headers. Construct from raw data, maps, or parse
 /// directly from a CSV string:
 ///
@@ -12,11 +12,11 @@
 ///
 /// Supporting types:
 ///
-/// - [CsvRow] — header-aware row with dual-mode access (`row[0]` or
+/// - [CsvRow]: header-aware row with dual-mode access (`row[0]` or
 ///   `row['name']`). Extends `ListBase<dynamic>`.
-/// - [CsvColumn] — column descriptor with analytics (`inferredType`,
+/// - [CsvColumn]: column descriptor with analytics (`inferredType`,
 ///   `nonNullCount`, `uniqueCount`).
-/// - [CsvSchema] / [ColumnDef] — schema inference and validation.
+/// - [CsvSchema] / [CsvColumnDef]: schema inference and validation.
 library;
 
 export 'src/table/csv_table.dart';

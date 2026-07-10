@@ -36,7 +36,7 @@ void main() {
 
     test('disabled autoDetect uses config delimiter', () {
       final codec = CsvCodec(const CsvConfig(autoDetect: false));
-      // Semicolons are NOT detected — comma is used
+      // Semicolons are NOT detected; the comma is used
       final result = codec.decode('a;b\n1;2');
       expect(result[0], ['a;b']);
     });
@@ -100,12 +100,14 @@ void main() {
     test('suppresses missing required column errors', () {
       final schema = CsvSchema(
         columns: [
-          ColumnDef(name: 'a', required: true),
-          ColumnDef(name: 'b', required: true),
+          CsvColumnDef(name: 'a', required: true),
+          CsvColumnDef(name: 'b', required: true),
         ],
         allowMissingColumns: true,
       );
-      final errors = schema.validate(['a'], [
+      final errors = schema.validate([
+        'a'
+      ], [
         [1],
       ]);
       expect(errors, isEmpty);
@@ -114,12 +116,14 @@ void main() {
     test('without flag reports missing required columns', () {
       final schema = CsvSchema(
         columns: [
-          ColumnDef(name: 'a', required: true),
-          ColumnDef(name: 'b', required: true),
+          CsvColumnDef(name: 'a', required: true),
+          CsvColumnDef(name: 'b', required: true),
         ],
         allowMissingColumns: false,
       );
-      final errors = schema.validate(['a'], [
+      final errors = schema.validate([
+        'a'
+      ], [
         [1],
       ]);
       expect(errors.length, 1);
@@ -320,7 +324,7 @@ void main() {
   group('CsvSchema pattern validation', () {
     test('valid value passes pattern', () {
       final schema = CsvSchema(columns: [
-        ColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
+        CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
       ]);
       final errors = schema.validate(
         ['email'],
@@ -333,7 +337,7 @@ void main() {
 
     test('invalid value fails pattern', () {
       final schema = CsvSchema(columns: [
-        ColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
+        CsvColumnDef(name: 'email', pattern: r'^[\w.]+@[\w.]+$'),
       ]);
       final errors = schema.validate(
         ['email'],
@@ -352,8 +356,8 @@ void main() {
   group('FastEncoder.encodeGeneric', () {
     test('empty data with BOM', () {
       final encoder = FastEncoder();
-      final result = encoder.encodeGeneric<int>(
-          [], const CsvConfig(addBom: true));
+      final result =
+          encoder.encodeGeneric<int>([], const CsvConfig(addBom: true));
       expect(result.codeUnitAt(0), 0xFEFF);
     });
 

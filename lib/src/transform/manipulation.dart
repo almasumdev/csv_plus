@@ -65,8 +65,7 @@ extension CsvTableManipulation on CsvTable {
   }
 
   /// Apply a transform to every cell in a column.
-  void transformColumn(
-      String name, dynamic Function(dynamic value) transform) {
+  void transformColumn(String name, dynamic Function(dynamic value) transform) {
     final idx = headers.indexOf(name);
     if (idx < 0) throw CsvException('Column "$name" not found');
     for (final row in rawData) {
@@ -74,11 +73,15 @@ extension CsvTableManipulation on CsvTable {
     }
   }
 
-  /// Apply a transform to every row. Returns new [CsvTable].
+  /// Apply a transform to every row. Returns a new [CsvTable]; this table
+  /// is left untouched.
+  ///
+  /// The [transform] receives a copy of each row, so writing through it
+  /// (for example `row[0] = x`) cannot corrupt the source table.
   CsvTable map(CsvRow Function(CsvRow row) transform) {
     final headerMap = buildHeaderMap();
     final mapped = rawData.map((r) {
-      final result = transform(CsvRow(r, headerMap));
+      final result = transform(CsvRow(List<dynamic>.from(r), headerMap));
       return List<dynamic>.from(result);
     }).toList();
     return CsvTable.internal(List<String>.from(headers), mapped);
