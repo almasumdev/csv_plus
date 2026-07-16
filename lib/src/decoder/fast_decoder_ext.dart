@@ -29,14 +29,34 @@ extension FastDecoderFlexible on FastDecoder {
     final skipEmpty = config.skipEmptyLines;
     final dynamicTyping = config.dynamicTyping;
     final hasHeader = config.hasHeader;
+    final hasComment = config.comment != null && config.comment!.isNotEmpty;
+    final commentCode = hasComment ? config.comment!.codeUnitAt(0) : -1;
+    final skipRows = config.skipRows;
+    final maxRows = config.maxRows;
 
     final rows = <List<dynamic>>[];
     var headerDone = false;
     var cursor = 0;
+    var skipped = 0;
+    var dataCount = 0;
 
     if (len > 0 && bytes[0] == _bom) cursor = 1;
 
     while (cursor < len) {
+      // Comment line: drop the whole physical line before parsing it.
+      if (hasComment && bytes[cursor] == commentCode) {
+        cursor++;
+        while (cursor < len && bytes[cursor] != _lf && bytes[cursor] != _cr) {
+          cursor++;
+        }
+        if (cursor < len) {
+          final term = bytes[cursor];
+          cursor++;
+          if (term == _cr && cursor < len && bytes[cursor] == _lf) cursor++;
+        }
+        continue;
+      }
+
       // Zero-length line: skipped under skipEmptyLines, otherwise the cell
       // loop below reads it as one empty field.
       if (bytes[cursor] == _cr || bytes[cursor] == _lf) {
@@ -194,12 +214,22 @@ extension FastDecoderFlexible on FastDecoder {
         if (only == null || only == '') continue;
       }
 
+      // Skip leading rows (a preamble) before the header row is read.
+      if (skipped < skipRows) {
+        skipped++;
+        continue;
+      }
+
       if (hasHeader && !headerDone) {
         headerDone = true;
         continue;
       }
 
+      // Stop once the data-row limit is reached.
+      if (maxRows != null && dataCount >= maxRows) break;
+
       rows.add(currentRow);
+      dataCount++;
     }
 
     return rows;

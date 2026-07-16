@@ -1,7 +1,7 @@
 name: csv_plus
 description: >-
   Fast, complete CSV parser for Dart. Encode, decode, stream, query, and validate CSV data with automatic type inference and zero dependencies.
-version: 1.0.1
+version: 1.1.0
 repository: https://github.com/almasumdev/csv_plus
 homepage: https://github.com/almasumdev/csv_plus
 issue_tracker: https://github.com/almasumdev/csv_plus/issues

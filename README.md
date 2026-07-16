@@ -91,6 +91,7 @@ cd benchmark/compare && dart pub get && dart run bench.dart
   - [Stream large files](#stream-large-files)
   - [Read and write files](#read-and-write-files)
   - [Configuration and presets](#configuration-and-presets)
+  - [Comments and row windowing](#comments-and-row-windowing)
   - [Strict mode](#strict-mode)
   - [Schema validation](#schema-validation)
   - [Maps and two-column CSV](#maps-and-two-column-csv)
@@ -112,7 +113,8 @@ Flutter platform.
 - Data-loss guards: `007`, `+1`, whitespace, and 16+ digit ids stay text; quoted fields are never inferred
 - String-only, integer, double, and boolean decoders that throw on bad input instead of inventing values
 - Lenient (`decodeFlexible`) mode: trims whitespace and recovers unmatched quotes
-- Header-aware rows (`CsvRow`) with `row['name']` and `row[0]` access
+- Header-aware rows (`CsvRow`) with `row['name']` and `row[0]` access, or `decodeToMaps` for a list of header-keyed maps
+- Comment-line skipping (`comment: '#'`) and row windowing (`skipRows` / `maxRows`) to drop preambles and read a slice
 - Delimiter auto-detection, BOM handling, and the Excel `sep=` hint
 
 </details>
@@ -162,8 +164,6 @@ Flutter platform.
 
 ## Limitations
 
-- ❌ Comment-line skipping (`#`-prefixed rows)
-- ❌ Row windowing (`skipRows` / `maxRows`)
 - ❌ Per-column type coercion on decode (schemas validate, they do not coerce)
 
 ## Roadmap
@@ -171,8 +171,6 @@ Flutter platform.
 What ships next is driven by user requests on the
 [issue tracker](https://github.com/almasumdev/csv_plus/issues):
 
-- ⬜ Comment-line skipping (`#`-prefixed rows)
-- ⬜ Row windowing (`skipRows` / `maxRows`)
 - ⬜ Per-column type coercion driven by `CsvSchema`
 
 Shipped milestones are in the
@@ -340,6 +338,36 @@ final custom = CsvCodec(CsvConfig(
   skipEmptyLines: true,
 ));
 ```
+
+### Comments and row windowing
+
+Real-world exports often carry a comment preamble or more rows than you want to
+load. Skip comment lines, drop leading rows, and cap the result without a second
+pass:
+
+```dart
+const csv =
+    '# export 2026-07-17\n'
+    'name,score\n'
+    'Alice,95\n'
+    'Bob,88\n'
+    'Eve,73';
+
+final codec = CsvCodec(CsvConfig(
+  comment: '#',   // drop lines beginning with '#'
+  hasHeader: true,
+  maxRows: 2,     // read at most two data rows
+));
+
+codec.decode(csv);        // [['Alice', 95], ['Bob', 88]]
+codec.decodeToMaps(csv);  // [{name: Alice, score: 95}, {name: Bob, score: 88}]
+```
+
+`comment` is detected only at the start of a line, so a `#` inside a quoted or
+mid-field value stays content. `skipRows` drops leading rows before the header
+is read (handy for a titled preamble); `maxRows` bounds the data rows and lets
+the batch decoders stop early. All three apply across every decode path,
+including the streaming decoder.
 
 ### Strict mode
 

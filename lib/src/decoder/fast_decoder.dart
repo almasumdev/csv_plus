@@ -100,6 +100,10 @@ class FastDecoder {
     final transform = config.decoderTransform;
     final hasHeader = config.hasHeader;
     final strict = config.strict;
+    final hasComment = config.comment != null && config.comment!.isNotEmpty;
+    final commentCode = hasComment ? config.comment!.codeUnitAt(0) : -1;
+    final skipRows = config.skipRows;
+    final maxRows = config.maxRows;
 
     final rows = <List<dynamic>>[];
     List<String>? headers;
@@ -107,12 +111,29 @@ class FastDecoder {
     var cursor = 0;
     var colCount = -1;
     var rowIndex = 0;
+    var skipped = 0;
+    var dataCount = 0;
 
     // Strip BOM
     if (len > 0 && bytes[0] == _bom) cursor = 1;
 
     outerLoop:
     while (cursor < len) {
+      // Comment line: drop the whole physical line before parsing it.
+      if (hasComment && bytes[cursor] == commentCode) {
+        cursor++;
+        while (cursor < len && bytes[cursor] != _lf && bytes[cursor] != _cr) {
+          cursor++;
+        }
+        if (cursor < len) {
+          final term = bytes[cursor];
+          cursor++;
+          if (term == _cr && cursor < len && bytes[cursor] == _lf) cursor++;
+        }
+        rowIndex++;
+        continue outerLoop;
+      }
+
       // Fast path: zero-length line skipped under skipEmptyLines. When not
       // skipping, fall through so the cell loop reads it as one empty field.
       final rowCh = bytes[cursor];
@@ -462,6 +483,12 @@ class FastDecoder {
         if (only == null || only == '') continue;
       }
 
+      // Skip leading rows (a preamble) before the header row is read.
+      if (skipped < skipRows) {
+        skipped++;
+        continue;
+      }
+
       if (isHeaderRow) {
         headers = List<String>.generate(row.length, (i) => row[i] as String);
         headerDone = true;
@@ -470,8 +497,12 @@ class FastDecoder {
         continue;
       }
 
+      // Stop once the data-row limit is reached.
+      if (maxRows != null && dataCount >= maxRows) break outerLoop;
+
       if (colCount < 0) colCount = cellIdx;
       rows.add(row);
+      dataCount++;
     }
 
     return rows;
@@ -497,16 +528,37 @@ class FastDecoder {
     final skipEmpty = config.skipEmptyLines;
     final hasHeader = config.hasHeader;
     final strict = config.strict;
+    final hasComment = config.comment != null && config.comment!.isNotEmpty;
+    final commentCode = hasComment ? config.comment!.codeUnitAt(0) : -1;
+    final skipRows = config.skipRows;
+    final maxRows = config.maxRows;
 
     final rows = <List<String>>[];
     var headerDone = false;
     var cursor = 0;
     var colCount = -1;
     var rowIndex = 0;
+    var skipped = 0;
+    var dataCount = 0;
 
     if (len > 0 && bytes[0] == _bom) cursor = 1;
 
     while (cursor < len) {
+      // Comment line: drop the whole physical line before parsing it.
+      if (hasComment && bytes[cursor] == commentCode) {
+        cursor++;
+        while (cursor < len && bytes[cursor] != _lf && bytes[cursor] != _cr) {
+          cursor++;
+        }
+        if (cursor < len) {
+          final term = bytes[cursor];
+          cursor++;
+          if (term == _cr && cursor < len && bytes[cursor] == _lf) cursor++;
+        }
+        rowIndex++;
+        continue;
+      }
+
       // Fast path: zero-length line skipped under skipEmptyLines. When not
       // skipping, fall through so the cell loop reads it as one empty field.
       final rowCh = bytes[cursor];
@@ -661,14 +713,24 @@ class FastDecoder {
       // A row of a single empty field is an empty line per RFC 4180.
       if (skipEmpty && cellIdx == 1 && row[0].isEmpty) continue;
 
+      // Skip leading rows (a preamble) before the header row is read.
+      if (skipped < skipRows) {
+        skipped++;
+        continue;
+      }
+
       if (hasHeader && !headerDone) {
         headerDone = true;
         colCount = row.length;
         continue;
       }
 
+      // Stop once the data-row limit is reached.
+      if (maxRows != null && dataCount >= maxRows) break;
+
       if (colCount < 0) colCount = cellIdx;
       rows.add(row);
+      dataCount++;
     }
 
     return rows;

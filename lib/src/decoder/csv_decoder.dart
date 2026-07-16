@@ -84,7 +84,14 @@ class CsvDecoder extends StreamTransformerBase<String, List<dynamic>> {
   }
 }
 
-enum _State { fieldStart, unquotedField, quotedField, afterQuote, quoteJunk }
+enum _State {
+  fieldStart,
+  unquotedField,
+  quotedField,
+  afterQuote,
+  quoteJunk,
+  comment,
+}
 
 /// Chunked CSV parsing state machine. Preserves state across chunk boundaries.
 class _StateMachine {
@@ -99,6 +106,13 @@ class _StateMachine {
   late final bool _skipEmpty = config.skipEmptyLines;
   late final bool _hasHeader = config.hasHeader;
   late final bool _strict = config.strict;
+  late final bool _hasComment =
+      config.comment != null && config.comment!.isNotEmpty;
+  late final int _commentCode = _hasComment
+      ? config.comment!.codeUnitAt(0)
+      : -1;
+  late final int _skipRows = config.skipRows;
+  late final int? _maxRows = config.maxRows;
 
   _State _state = _State.fieldStart;
   final _buf = StringBuffer();
@@ -110,6 +124,8 @@ class _StateMachine {
   // Number of delimiter code units already matched at a chunk boundary.
   var _pendingDelim = 0;
   var _rowIndex = 0;
+  var _skipped = 0;
+  var _dataCount = 0;
   List<String>? _headers;
 
   _StateMachine(this.config, this._emit);
@@ -133,6 +149,19 @@ class _StateMachine {
     while (i < len) {
       final ch = codes[i];
       switch (_state) {
+        case _State.comment:
+          // Consume a comment line to its terminator; emit nothing.
+          if (ch == 13) {
+            _state = _State.fieldStart;
+            _pendingCr = true;
+            i++;
+          } else if (ch == 10) {
+            _state = _State.fieldStart;
+            i++;
+          } else {
+            i++;
+          }
+
         case _State.fieldStart:
           _isQuoted = false;
           if (_pendingCr) {
@@ -142,7 +171,11 @@ class _StateMachine {
               continue;
             }
           }
-          if (ch == _quoteCode) {
+          if (_hasComment && _currentRow.isEmpty && ch == _commentCode) {
+            // Comment marker at the very start of a row: drop the line.
+            _state = _State.comment;
+            i++;
+          } else if (ch == _quoteCode) {
             _isQuoted = true;
             _state = _State.quotedField;
             i++;
@@ -301,6 +334,8 @@ class _StateMachine {
   }
 
   void finish() {
+    // A comment line at end of input (no trailing newline) emits nothing.
+    if (_state == _State.comment) return;
     if (_pendingEscape) {
       _pendingEscape = false;
       _buf.writeCharCode(_escapeCode);
@@ -428,11 +463,21 @@ class _StateMachine {
       if (only == null || only == '') return;
     }
 
+    // Skip leading rows (a preamble) before the header row is read.
+    if (_skipped < _skipRows) {
+      _skipped++;
+      return;
+    }
+
     if (_hasHeader && _headers == null) {
       _headers = List<String>.generate(row.length, (i) => row[i] as String);
       return;
     }
 
+    // Stop emitting once the data-row limit is reached.
+    final max = _maxRows;
+    if (max != null && _dataCount >= max) return;
+    _dataCount++;
     _emit(row);
   }
 }

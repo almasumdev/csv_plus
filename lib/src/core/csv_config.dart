@@ -47,6 +47,33 @@ class CsvConfig {
   /// and an unterminated quote consumes the rest of the input as content.
   final bool strict;
 
+  /// Marker for comment lines to skip while decoding (for example `#`).
+  ///
+  /// A physical line whose first character equals this marker is dropped
+  /// before it is parsed as a record. Detection happens only at the very
+  /// start of a line, so the marker inside a quoted field (`"a#b"`) or
+  /// mid-field (`a#b`) is ordinary content. The marker is a single
+  /// character; if a longer string is given only its first character is
+  /// used. Comment lines never count toward [skipRows]. Decode-only;
+  /// `null` (the default) disables comment skipping.
+  final String? comment;
+
+  /// Number of leading rows to skip before decoding begins.
+  ///
+  /// Counted after comment lines and (under [skipEmptyLines]) empty lines
+  /// are dropped, and before the header row (if [hasHeader]) is read, so it
+  /// skips a preamble sitting above the real table. Decode-only; defaults
+  /// to `0`.
+  final int skipRows;
+
+  /// Maximum number of data rows to return, or `null` (the default) for no
+  /// limit.
+  ///
+  /// The header row (under [hasHeader]) is not counted. The batch decoders
+  /// stop reading once the limit is reached; the streaming decoder stops
+  /// emitting further rows. Decode-only.
+  final int? maxRows;
+
   /// Transform each field after decoding.
   final dynamic Function(dynamic value, int index, String? header)?
   decoderTransform;
@@ -72,6 +99,9 @@ class CsvConfig {
     this.hasHeader = false,
     this.dynamicTyping = true,
     this.strict = false,
+    this.comment,
+    this.skipRows = 0,
+    this.maxRows,
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -86,6 +116,9 @@ class CsvConfig {
     this.hasHeader = false,
     this.dynamicTyping = true,
     this.strict = false,
+    this.comment,
+    this.skipRows = 0,
+    this.maxRows,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = ';',
@@ -104,6 +137,9 @@ class CsvConfig {
     this.hasHeader = false,
     this.dynamicTyping = true,
     this.strict = false,
+    this.comment,
+    this.skipRows = 0,
+    this.maxRows,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '\t',
@@ -121,6 +157,9 @@ class CsvConfig {
     this.hasHeader = false,
     this.dynamicTyping = true,
     this.strict = false,
+    this.comment,
+    this.skipRows = 0,
+    this.maxRows,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '|',
@@ -144,6 +183,9 @@ class CsvConfig {
     bool? hasHeader,
     bool? dynamicTyping,
     bool? strict,
+    String? comment,
+    int? skipRows,
+    int? maxRows,
     dynamic Function(dynamic value, int index, String? header)?
     decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -161,6 +203,9 @@ class CsvConfig {
       hasHeader: hasHeader ?? this.hasHeader,
       dynamicTyping: dynamicTyping ?? this.dynamicTyping,
       strict: strict ?? this.strict,
+      comment: comment ?? this.comment,
+      skipRows: skipRows ?? this.skipRows,
+      maxRows: maxRows ?? this.maxRows,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );

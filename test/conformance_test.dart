@@ -281,6 +281,62 @@ void main() {
     });
   });
 
+  group('Comment Lines and Row Windowing', () {
+    test('comment lines are skipped on every path', () {
+      const cfg = CsvConfig(autoDetect: false, comment: '#');
+      _expectAllPaths('# header\na,b\n# mid\n1,2', cfg, [
+        ['a', 'b'],
+        [1, 2],
+      ]);
+    });
+
+    test('a trailing comment line without a newline emits nothing', () {
+      const cfg = CsvConfig(autoDetect: false, comment: '#');
+      _expectAllPaths('a,b\n# tail', cfg, [
+        ['a', 'b'],
+      ]);
+    });
+
+    test('a marker inside a quoted field stays content on every path', () {
+      const cfg = CsvConfig(autoDetect: false, comment: '#');
+      _expectAllPaths('"#x",1', cfg, [
+        ['#x', 1],
+      ]);
+    });
+
+    test('skipRows drops leading rows on every path', () {
+      const cfg = CsvConfig(autoDetect: false, skipRows: 2);
+      _expectAllPaths('j1\nj2\na,b\n1,2', cfg, [
+        ['a', 'b'],
+        [1, 2],
+      ]);
+    });
+
+    test('maxRows limits data rows on every path', () {
+      const cfg = CsvConfig(autoDetect: false, maxRows: 2);
+      _expectAllPaths('1\n2\n3\n4', cfg, [
+        [1],
+        [2],
+      ]);
+    });
+
+    test('skipRows and maxRows combine on every path', () {
+      const cfg = CsvConfig(autoDetect: false, skipRows: 1, maxRows: 2);
+      _expectAllPaths('1\n2\n3\n4\n5', cfg, [
+        [2],
+        [3],
+      ]);
+    });
+
+    test('comment skipping and skipRows compose on every path', () {
+      const cfg = CsvConfig(autoDetect: false, comment: '#', skipRows: 1);
+      _expectAllPaths('# c\nj\na,b\n1,2', cfg, [
+        ['a', 'b'],
+        [1, 2],
+      ]);
+    });
+  });
+
   group('Strict Mode', () {
     const strict = CsvConfig(autoDetect: false, strict: true);
 

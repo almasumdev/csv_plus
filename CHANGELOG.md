@@ -1,3 +1,27 @@
+## 1.1.0
+
+Comment-line skipping, row windowing, and a header-keyed map decode. All
+additions are backward-compatible: existing calls behave exactly as before.
+
+### New
+
+- `CsvConfig(comment: '#')` drops comment lines while decoding. The marker is
+  matched only at the very start of a line, so a `#` inside a quoted field or
+  mid-field is ordinary content. The marker is a single character; comment
+  lines never count toward `skipRows`.
+- `CsvConfig(skipRows: n)` skips leading rows before the header row is read,
+  for a preamble sitting above the real table.
+- `CsvConfig(maxRows: n)` caps the number of data rows returned (the header is
+  not counted); the batch decoders stop reading once the limit is reached and
+  the streaming decoder stops emitting.
+- `CsvCodec.decodeToMaps` decodes straight to a `List<Map<String, dynamic>>`
+  keyed by header name, a shortcut for `decodeToTable(input).toMaps()`.
+
+All three config options apply across every decode path (`decode`,
+`decodeStrings`, `decodeFlexible`, the typed decoders, `decodeToTable`,
+`decodeToMaps`, and the streaming `CsvDecoder`), and are held to identical
+output by the conformance suite that splits input at every chunk boundary.
+
 ## 1.0.1
 
 Documentation and metadata only; no library or API changes.

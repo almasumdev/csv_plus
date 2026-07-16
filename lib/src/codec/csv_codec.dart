@@ -161,6 +161,15 @@ class CsvCodec {
     return CsvTable.internal(decoded.headers, decoded.rows);
   }
 
+  /// Decode CSV string into a list of maps keyed by header name.
+  ///
+  /// The first row supplies the keys; each later row becomes a
+  /// `Map<String, dynamic>` whose values follow [CsvConfig.dynamicTyping].
+  /// A convenience wrapper over [decodeToTable] and `CsvTable.toMaps`.
+  List<Map<String, dynamic>> decodeToMaps(String input) {
+    return decodeToTable(input).toMaps();
+  }
+
   // ---------------------------------------------------------------------------
   // Streaming
   // ---------------------------------------------------------------------------
