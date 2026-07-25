@@ -172,6 +172,107 @@ class CsvSchema {
 
     return errors;
   }
+
+  /// Coerce each column's values to its declared [CsvColumnDef.type], returning
+  /// freshly built rows (the input is left untouched).
+  ///
+  /// A column is matched to a header by name. Columns with no schema entry, and
+  /// schema columns whose header is absent, are left unchanged, as are columns
+  /// whose [CsvColumnDef.type] is `null`. Supported target types are `int`,
+  /// `double`, `num`, `bool`, `String`, and `DateTime`; any other type is left
+  /// as-is.
+  ///
+  /// Throws [CsvParseException] (carrying the 0-based `row` and `column`) when a
+  /// value cannot be converted, or when a null appears in a column declared
+  /// `nullable: false`. A null in a nullable column stays null.
+  List<List<dynamic>> coerce(List<String> headers, List<List<dynamic>> rows) {
+    final schemaMap = {for (final c in columns) c.name: c};
+    final out = <List<dynamic>>[];
+    for (var r = 0; r < rows.length; r++) {
+      final row = rows[r];
+      final newRow = List<dynamic>.from(row);
+      for (var c = 0; c < headers.length && c < newRow.length; c++) {
+        final col = schemaMap[headers[c]];
+        if (col == null) continue;
+        newRow[c] = _coerceCell(newRow[c], col, r, c);
+      }
+      out.add(newRow);
+    }
+    return out;
+  }
+
+  /// Converts a single [value] to [col]'s declared type, honoring nullability.
+  static dynamic _coerceCell(
+    dynamic value,
+    CsvColumnDef col,
+    int row,
+    int column,
+  ) {
+    if (value == null) {
+      if (col.nullable) return null;
+      throw CsvParseException(
+        'Null value in non-nullable column "${col.name}"',
+        row: row,
+        column: column,
+      );
+    }
+    final type = col.type;
+    if (type == null) return value;
+
+    Never fail() => throw CsvParseException(
+      'Cannot convert "$value" to $type in column "${col.name}"',
+      row: row,
+      column: column,
+    );
+
+    if (type == String) return value.toString();
+    if (type == int) {
+      if (value is int) return value;
+      if (value is double) {
+        if (value.isFinite && value == value.roundToDouble()) {
+          return value.toInt();
+        }
+        fail();
+      }
+      if (value is String) return int.tryParse(value.trim()) ?? fail();
+      fail();
+    }
+    if (type == double) {
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value.trim()) ?? fail();
+      fail();
+    }
+    if (type == num) {
+      if (value is num) return value;
+      if (value is String) return num.tryParse(value.trim()) ?? fail();
+      fail();
+    }
+    if (type == bool) {
+      if (value is bool) return value;
+      if (value is num) {
+        if (value == 1) return true;
+        if (value == 0) return false;
+        fail();
+      }
+      if (value is String) {
+        switch (value.trim().toLowerCase()) {
+          case 'true' || '1':
+            return true;
+          case 'false' || '0':
+            return false;
+        }
+        fail();
+      }
+      fail();
+    }
+    if (type == DateTime) {
+      if (value is DateTime) return value;
+      if (value is String) return DateTime.tryParse(value.trim()) ?? fail();
+      fail();
+    }
+    // Unknown target type: leave the value unchanged.
+    return value;
+  }
 }
 
 /// Defines a single column's constraints.

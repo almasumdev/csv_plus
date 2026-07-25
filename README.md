@@ -93,7 +93,7 @@ cd benchmark/compare && dart pub get && dart run bench.dart
   - [Configuration and presets](#configuration-and-presets)
   - [Comments and row windowing](#comments-and-row-windowing)
   - [Strict mode](#strict-mode)
-  - [Schema validation](#schema-validation)
+  - [Schema validation and coercion](#schema-validation-and-coercion)
   - [Maps and two-column CSV](#maps-and-two-column-csv)
   - [dart:convert integration](#dartconvert-integration)
 - [csv_plus vs csv](#csv_plus-vs-csv)
@@ -147,7 +147,7 @@ Flutter platform.
 - Filter, sort (stable), take, skip, distinct, and range
 - Aggregate: sum, avg, min, max, count, and groupBy
 - Add, remove, rename, reorder, and transform columns
-- Schema validation: column types, nullability, patterns, and custom validators
+- Schema validation and coercion: check or convert column types, nullability, patterns, and custom validators
 
 </details>
 
@@ -164,16 +164,14 @@ Flutter platform.
 
 ## Limitations
 
-- ❌ Per-column type coercion on decode (schemas validate, they do not coerce)
+- ❌ Automatic date/time inference (dates stay text unless coerced with a schema)
 
 ## Roadmap
 
-What ships next is driven by user requests on the
-[issue tracker](https://github.com/almasumdev/csv_plus/issues):
-
-- ⬜ Per-column type coercion driven by `CsvSchema`
-
-Shipped milestones are in the
+The API is stable and the feature set is complete; new features are driven by
+user requests on the
+[issue tracker](https://github.com/almasumdev/csv_plus/issues). Shipped
+milestones are in the
 [changelog](https://github.com/almasumdev/csv_plus/blob/main/CHANGELOG.md).
 
 ## Error handling
@@ -377,7 +375,7 @@ final strict = CsvCodec(CsvConfig(strict: true));
 strict.decode('"unterminated'); // throws CsvParseException
 ```
 
-### Schema validation
+### Schema validation and coercion
 
 ```dart
 final schema = CsvSchema(columns: [
@@ -385,8 +383,16 @@ final schema = CsvSchema(columns: [
   CsvColumnDef(name: 'age', type: int, nullable: false),
 ]);
 
+// Validate...
 final errors = table.validate(schema);   // List<CsvValidationException>
 final ok = table.conformsTo(schema);      // bool
+
+// ...or coerce: convert each column to its declared type (int, double, num,
+// bool, String, DateTime). Throws CsvParseException (with row and column) on a
+// value that will not convert, or a null in a non-nullable column.
+final typed = codec.decodeWithSchema('email,age\na@b.com,42', schema);
+typed.rawData.first; // ['a@b.com', 42]  (age is an int, not "42")
+final coerced = table.coerce(schema); // or coerce an existing table
 ```
 
 ### Maps and two-column CSV

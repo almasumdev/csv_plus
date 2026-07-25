@@ -285,6 +285,18 @@ class CsvTable {
   /// Check if table conforms to schema.
   bool conformsTo(CsvSchema schema) => validate(schema).isEmpty;
 
+  /// Returns a copy of this table with each column's values coerced to the type
+  /// declared in [schema] (see [CsvSchema.coerce]); this table is unchanged.
+  ///
+  /// Throws [CsvParseException] when a value cannot be converted, or when a null
+  /// appears in a column declared `nullable: false`.
+  CsvTable coerce(CsvSchema schema) {
+    return CsvTable.fromData(
+      headers: _headers,
+      rows: schema.coerce(_headers, _data),
+    );
+  }
+
   // --- Copying ---
 
   /// Deep copy of the table.

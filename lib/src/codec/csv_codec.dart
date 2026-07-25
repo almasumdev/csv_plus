@@ -7,6 +7,7 @@ import '../decoder/fast_decoder_ext.dart';
 import '../encoder/csv_encoder.dart';
 import '../encoder/fast_encoder.dart';
 import '../table/csv_row.dart';
+import '../table/csv_schema.dart';
 import '../table/csv_table.dart';
 
 const _fastDecoder = FastDecoder();
@@ -168,6 +169,18 @@ class CsvCodec {
   /// A convenience wrapper over [decodeToTable] and `CsvTable.toMaps`.
   List<Map<String, dynamic>> decodeToMaps(String input) {
     return decodeToTable(input).toMaps();
+  }
+
+  /// Decode CSV string into a [CsvTable] whose columns are coerced to the types
+  /// declared in [schema].
+  ///
+  /// Parses with headers (like [decodeToTable]), then applies
+  /// [CsvTable.coerce]: every column named in [schema] has its values converted
+  /// to the declared type (`int`, `double`, `num`, `bool`, `String`, or
+  /// `DateTime`). Throws [CsvParseException] when a value cannot be converted,
+  /// or when a null appears in a column declared `nullable: false`.
+  CsvTable decodeWithSchema(String input, CsvSchema schema) {
+    return decodeToTable(input).coerce(schema);
   }
 
   // ---------------------------------------------------------------------------

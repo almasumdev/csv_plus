@@ -1,3 +1,21 @@
+## 1.2.0
+
+Per-column type coercion driven by `CsvSchema`. Additive and
+backward-compatible.
+
+### New
+
+- `CsvSchema.coerce(headers, rows)`, `CsvTable.coerce(schema)`, and
+  `CsvCodec.decodeWithSchema(input, schema)` convert each column's values to the
+  type declared on its `CsvColumnDef` (`int`, `double`, `num`, `bool`, `String`,
+  or `DateTime`). A column with no schema entry, or a `null` type, is left
+  unchanged; `CsvTable.coerce` returns a copy and never mutates the source.
+- Coercion throws `CsvParseException` (carrying the 0-based `row` and `column`)
+  when a value cannot be converted, or when a null appears in a column declared
+  `nullable: false`; a null in a nullable column stays null. This completes the
+  schema story: `CsvSchema` could already validate types, and can now coerce
+  them.
+
 ## 1.1.0
 
 Comment-line skipping, row windowing, and a header-keyed map decode. All
