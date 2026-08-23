@@ -20,3 +20,6 @@ CLAUDE.md
 
 # Superseded by CLAUDE.md
 .github/copilot-instructions.md
+
+# Firebase deploy cache
+.firebase/
