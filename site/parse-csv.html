@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to Parse a CSV String in Dart</title>
+<meta name="description" content="Parse CSV text into typed rows in Dart: quoted fields, embedded newlines, automatic type inference, and strict mode for malformed input.">
+<link rel="canonical" href="https://csv-plus.web.app/parse-csv">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Parse a CSV String in Dart">
+<meta property="og:description" content="Parse CSV text into typed rows in Dart: quoted fields, embedded newlines, automatic type inference, and strict mode for malformed input.">
+<meta property="og:url" content="https://csv-plus.web.app/parse-csv">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.5313a1aed0.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "How to parse a CSV string in Dart", "description": "Parse CSV text into typed rows in Dart: quoted fields, embedded newlines, automatic type inference, and strict mode for malformed input.", "url": "https://csv-plus.web.app/parse-csv", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "csv_plus", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/csv_plus"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I parse a CSV string in Dart?", "acceptedAnswer": {"@type": "Answer", "text": "Create a CsvCodec and call decode with the CSV text. It returns a list of rows with values already converted to int, double, bool or String."}}, {"@type": "Question", "name": "Does it handle quoted fields with commas and newlines?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Quoted fields may contain the delimiter, line breaks and doubled quotes, all parsed per RFC 4180."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">csv_plus</a>
+  <span class="ver">v1.2.0</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/csv_plus"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/csv_plus" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/parse-csv" aria-current="page">Parse CSV</a></li><li><a href="/read-csv-file">Read a file</a></li><li><a href="/write-csv">Write CSV</a></li></ul><h2>Working with data</h2><ul><li><a href="/csv-headers">Headers and rows</a></li><li><a href="/type-inference">Type inference</a></li><li><a href="/query-csv">Query and group</a></li><li><a href="/csv-to-json">CSV to JSON</a></li></ul><h2>Control</h2><ul><li><a href="/csv-schema">Schema and validation</a></li><li><a href="/tsv-and-delimiters">TSV and delimiters</a></li></ul><h2>Scale</h2><ul><li><a href="/large-csv-files">Large files</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>How to parse a CSV string in Dart</h1>
+      <p class="lede">Turn CSV text into rows, with the awkward parts of the format handled for you.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>dart pub add csv_plus</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:csv_plus/csv_plus.dart';</code></pre></div>
+<h2 id="decode-a-string">Decode a string<a class="anchor" href="#decode-a-string" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>import 'package:csv_plus/csv_plus.dart';
+
+void main() {
+  final codec = CsvCodec();
+  final rows = codec.decode('name,age\nAlice,30\nBob,25');
+
+  for (final row in rows) {
+    print(row);
+  }
+  // [name, age]
+  // [Alice, 30]
+  // [Bob, 25]
+}</code></pre></div>
+<p>Values come back typed. <code>30</code> is an <code>int</code>, not the string <code>"30"</code>. See <a href="/type-inference">type inference</a> for how that is decided and how to override it.</p>
+
+<h2 id="the-parts-of-csv-that-usually-break-parsers">The parts of CSV that usually break parsers<a class="anchor" href="#the-parts-of-csv-that-usually-break-parsers" aria-label="Link to this section">#</a></h2>
+<p>A field wrapped in quotes may contain the delimiter, a line break, or an escaped quote. All three are handled:</p>
+<div class="codeblock"><pre><code>final rows = codec.decode('name,note\n"Smith, Alice","said ""hello""\nand left"');
+
+rows[1][0]; // Smith, Alice
+rows[1][1]; // said "hello"
+            // and left</code></pre></div>
+<p>That second field contains a real newline and still belongs to one row, which is why splitting CSV on <code>\n</code> yourself goes wrong on real exports.</p>
+
+<h2 id="malformed-input">Malformed input<a class="anchor" href="#malformed-input" aria-label="Link to this section">#</a></h2>
+<p>By default the parser recovers from damage and gives you what it can. When you would rather know, turn on strict mode:</p>
+<div class="codeblock"><pre><code>final strict = CsvCodec(CsvConfig(strict: true));
+strict.decode('"unterminated'); // throws CsvParseException</code></pre></div>
+<p>There is a lenient decoder too, for input you know is untidy:</p>
+<div class="codeblock"><pre><code>codec.decodeFlexible('  a , b '); // trims, recovers bad quotes</code></pre></div>
+<h2 id="skipping-a-preamble">Skipping a preamble<a class="anchor" href="#skipping-a-preamble" aria-label="Link to this section">#</a></h2>
+<p>Exports often start with comment lines or a title block before the real header.</p>
+<div class="codeblock"><pre><code>final codec = CsvCodec(CsvConfig(comment: '#', hasHeader: true));
+
+codec.decode('# export 2026-07-17\nname,score\nAlice,95');
+// [[Alice, 95]]</code></pre></div>
+<p><code>comment</code> only matches at the start of a line, so a <code>#</code> inside a quoted value stays content. <code>skipRows</code> drops leading rows before the header is read, and <code>maxRows</code> caps how many data rows you load.</p>
+<nav class="next" aria-label="Related guides"><a href="/type-inference">Type inference</a><a href="/csv-headers">Headers</a><a href="/read-csv-file">Read a file</a></nav>
+      <footer class="pagefoot">
+        csv_plus is open source under the MIT licence.
+        <a href="https://pub.dev/packages/csv_plus">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/csv_plus">Source</a> &middot;
+        <a href="https://pub.dev/documentation/csv_plus/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#decode-a-string">Decode a string</a></li><li><a href="#the-parts-of-csv-that-usually-break-parsers">The parts of CSV that usually break parsers</a></li><li><a href="#malformed-input">Malformed input</a></li><li><a href="#skipping-a-preamble">Skipping a preamble</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

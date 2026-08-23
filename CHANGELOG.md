@@ -1,3 +1,12 @@
+## 1.2.1
+
+### Changed
+
+- Added a documentation website at https://csv-plus.web.app, with guides
+  for parsing, reading and writing CSV, headers, type inference, querying
+  and grouping, JSON conversion, schemas, delimiters, and large files.
+  Linked from the package page via the new `documentation` field.
+
 ## 1.2.0
 
 Per-column type coercion driven by `CsvSchema`. Additive and

@@ -1,0 +1,86 @@
+{
+  "hosting": [
+    {
+      "site": "csv-plus",
+      "public": "site",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "cleanUrls": false,
+      "trailingSlash": false,
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        },
+        {
+          "source": "/logo.svg",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(css|js)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/parse-csv",
+          "destination": "/parse-csv.html"
+        },
+        {
+          "source": "/read-csv-file",
+          "destination": "/read-csv-file.html"
+        },
+        {
+          "source": "/write-csv",
+          "destination": "/write-csv.html"
+        },
+        {
+          "source": "/csv-headers",
+          "destination": "/csv-headers.html"
+        },
+        {
+          "source": "/type-inference",
+          "destination": "/type-inference.html"
+        },
+        {
+          "source": "/query-csv",
+          "destination": "/query-csv.html"
+        },
+        {
+          "source": "/csv-to-json",
+          "destination": "/csv-to-json.html"
+        },
+        {
+          "source": "/csv-schema",
+          "destination": "/csv-schema.html"
+        },
+        {
+          "source": "/tsv-and-delimiters",
+          "destination": "/tsv-and-delimiters.html"
+        },
+        {
+          "source": "/large-csv-files",
+          "destination": "/large-csv-files.html"
+        }
+      ]
+    }
+  ]
+}

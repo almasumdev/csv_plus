@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bg" cx="46%" cy="42%" r="80%">
+      <stop offset="0%" stop-color="#3B4149"/>
+      <stop offset="55%" stop-color="#20242A"/>
+      <stop offset="100%" stop-color="#0B0D10"/>
+    </radialGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#EDF2F8"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1AC6D7"/>
+      <stop offset="100%" stop-color="#0FA4B6"/>
+    </linearGradient>
+    <linearGradient id="disc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2E7BEA"/>
+      <stop offset="100%" stop-color="#135FD1"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="55"/>
+    </filter>
+    <filter id="shadow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="20"/>
+    </filter>
+  </defs>
+
+  <!-- dark background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- white glow behind the mark -->
+  <ellipse cx="500" cy="500" rx="360" ry="380" fill="#FFFFFF" opacity="0.55" filter="url(#glow)"/>
+  <ellipse cx="700" cy="672" rx="215" ry="215" fill="#FFFFFF" opacity="0.5" filter="url(#glow)"/>
+
+  <!-- file drop shadow -->
+  <path d="M245 206 H601 L751 356 V772 A34 34 0 0 1 717 806 H245 A34 34 0 0 1 211 772 V240 A34 34 0 0 1 245 206 Z"
+        fill="#08182F" opacity="0.4" filter="url(#shadow)"/>
+
+  <!-- file body: white sheet with a dog-eared top-right corner -->
+  <path d="M239 190 H595 L745 340 V756 A34 34 0 0 1 711 790 H239 A34 34 0 0 1 205 756 V224 A34 34 0 0 1 239 190 Z"
+        fill="url(#paper)"/>
+
+  <!-- folded corner: flap + blue crease bracket -->
+  <path d="M595 190 L745 340 H595 Z" fill="#D6E6FB"/>
+  <path d="M595 190 V340 H745" fill="none" stroke="#1668D9" stroke-width="18"
+        stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- table grid: teal key column + light-blue ruled cells -->
+  <rect x="250" y="378" width="118" height="288" fill="url(#teal)"/>
+  <g stroke="#B4D0F0" stroke-width="8" stroke-linecap="round">
+    <path d="M250 378 H722 M250 450 H722 M250 522 H722 M250 594 H722 M250 666 H722"/>
+    <path d="M250 378 V666 M368 378 V666 M486 378 V666 M604 378 V666 M722 378 V666"/>
+  </g>
+
+  <!-- blue disc with a white plus (add / write) -->
+  <ellipse cx="708" cy="674" rx="170" ry="170" fill="#FFFFFF"/>
+  <circle cx="708" cy="672" r="140" fill="url(#disc)"/>
+  <g fill="#FFFFFF">
+    <rect x="684" y="596" width="48" height="152" rx="15"/>
+    <rect x="632" y="648" width="152" height="48" rx="15"/>
+  </g>
+</svg>

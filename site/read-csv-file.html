@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to Read a CSV File in Dart</title>
+<meta name="description" content="Read a .csv file from disk in Dart, into rows or a queryable table, and append to an existing file. Includes the streaming option for large files.">
+<link rel="canonical" href="https://csv-plus.web.app/read-csv-file">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Read a CSV File in Dart">
+<meta property="og:description" content="Read a .csv file from disk in Dart, into rows or a queryable table, and append to an existing file. Includes the streaming option for large files.">
+<meta property="og:url" content="https://csv-plus.web.app/read-csv-file">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.5313a1aed0.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "How to read a CSV file in Dart", "description": "Read a .csv file from disk in Dart, into rows or a queryable table, and append to an existing file. Includes the streaming option for large files.", "url": "https://csv-plus.web.app/read-csv-file", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "csv_plus", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/csv_plus"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I read a CSV file in Dart?", "acceptedAnswer": {"@type": "Answer", "text": "Import package:csv_plus/io.dart and await CsvFile.read with the path. For files too large to hold in memory, use CsvFile.stream instead."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">csv_plus</a>
+  <span class="ver">v1.2.0</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/csv_plus"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/csv_plus" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/parse-csv">Parse CSV</a></li><li><a href="/read-csv-file" aria-current="page">Read a file</a></li><li><a href="/write-csv">Write CSV</a></li></ul><h2>Working with data</h2><ul><li><a href="/csv-headers">Headers and rows</a></li><li><a href="/type-inference">Type inference</a></li><li><a href="/query-csv">Query and group</a></li><li><a href="/csv-to-json">CSV to JSON</a></li></ul><h2>Control</h2><ul><li><a href="/csv-schema">Schema and validation</a></li><li><a href="/tsv-and-delimiters">TSV and delimiters</a></li></ul><h2>Scale</h2><ul><li><a href="/large-csv-files">Large files</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>How to read a CSV file in Dart</h1>
+      <p class="lede">Load a file from disk into rows you can work with.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>dart pub add csv_plus</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:csv_plus/csv_plus.dart';</code></pre></div>
+<h2 id="read-a-file">Read a file<a class="anchor" href="#read-a-file" aria-label="Link to this section">#</a></h2>
+<p>File helpers live in a separate import, so the core library never pulls in <code>dart:io</code> and still works in the browser.</p>
+<div class="codeblock"><pre><code>import 'package:csv_plus/io.dart';
+
+void main() async {
+  final table = await CsvFile.read('data.csv');
+
+  print(table.rows.length);
+  print(table.rows.first['name']);
+}</code></pre></div>
+<h2 id="write-and-append">Write and append<a class="anchor" href="#write-and-append" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>await CsvFile.write('out.csv', table);
+await CsvFile.append('out.csv', [['Zoe', 41]]);</code></pre></div>
+<h2 id="reading-a-file-you-already-hold-as-text">Reading a file you already hold as text<a class="anchor" href="#reading-a-file-you-already-hold-as-text" aria-label="Link to this section">#</a></h2>
+<p>If the content arrived over the network or from an asset rather than disk, decode it directly and skip the io import:</p>
+<div class="codeblock"><pre><code>import 'package:csv_plus/csv_plus.dart';
+
+final rows = CsvCodec().decode(responseBody);</code></pre></div>
+<h2 id="large-files">Large files<a class="anchor" href="#large-files" aria-label="Link to this section">#</a></h2>
+<p>Reading a whole file into memory is fine until it is not. For anything big, stream it instead, which holds one row at a time regardless of file size:</p>
+<div class="codeblock"><pre><code>import 'package:csv_plus/io.dart';
+
+await for (final row in CsvFile.stream('huge.csv')) {
+  process(row);
+}</code></pre></div>
+<p>See <a href="/large-csv-files">large files</a> for the detail, including byte streams and backpressure.</p>
+<nav class="next" aria-label="Related guides"><a href="/parse-csv">Parse CSV</a><a href="/large-csv-files">Large files</a><a href="/write-csv">Write CSV</a></nav>
+      <footer class="pagefoot">
+        csv_plus is open source under the MIT licence.
+        <a href="https://pub.dev/packages/csv_plus">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/csv_plus">Source</a> &middot;
+        <a href="https://pub.dev/documentation/csv_plus/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#read-a-file">Read a file</a></li><li><a href="#write-and-append">Write and append</a></li><li><a href="#reading-a-file-you-already-hold-as-text">Reading a file you already hold as text</a></li><li><a href="#large-files">Large files</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

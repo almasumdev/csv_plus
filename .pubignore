@@ -14,3 +14,5 @@ benchmark/
 images/logo.svg
 tool/
 CLAUDE.md
+# Documentation website output. Deployed to Firebase, not shipped.
+site/

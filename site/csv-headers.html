@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Working with CSV Headers and Named Columns in Dart</title>
+<meta name="description" content="Read CSV rows by column name in Dart instead of by index, using header-aware decoding and a queryable table.">
+<link rel="canonical" href="https://csv-plus.web.app/csv-headers">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Working with CSV Headers and Named Columns in Dart">
+<meta property="og:description" content="Read CSV rows by column name in Dart instead of by index, using header-aware decoding and a queryable table.">
+<meta property="og:url" content="https://csv-plus.web.app/csv-headers">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.5313a1aed0.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Headers and named columns", "description": "Read CSV rows by column name in Dart instead of by index, using header-aware decoding and a queryable table.", "url": "https://csv-plus.web.app/csv-headers", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "csv_plus", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/csv_plus"}}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">csv_plus</a>
+  <span class="ver">v1.2.0</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/csv_plus"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/csv_plus" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/parse-csv">Parse CSV</a></li><li><a href="/read-csv-file">Read a file</a></li><li><a href="/write-csv">Write CSV</a></li></ul><h2>Working with data</h2><ul><li><a href="/csv-headers" aria-current="page">Headers and rows</a></li><li><a href="/type-inference">Type inference</a></li><li><a href="/query-csv">Query and group</a></li><li><a href="/csv-to-json">CSV to JSON</a></li></ul><h2>Control</h2><ul><li><a href="/csv-schema">Schema and validation</a></li><li><a href="/tsv-and-delimiters">TSV and delimiters</a></li></ul><h2>Scale</h2><ul><li><a href="/large-csv-files">Large files</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Headers and named columns</h1>
+      <p class="lede">Address fields by name, so inserting a column does not silently break your code.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>dart pub add csv_plus</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:csv_plus/csv_plus.dart';</code></pre></div>
+<h2 id="decode-with-headers">Decode with headers<a class="anchor" href="#decode-with-headers" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final codec = CsvCodec();
+final csv = 'name,age\nAlice,30\nBob,25';
+
+final people = codec.decodeWithHeaders(csv);
+
+print(people.first['name']); // Alice
+print(people.first['age']);  // 30  (an int, not "30")</code></pre></div>
+<p>Index-based access breaks the moment someone adds a column to the export. Name-based access does not.</p>
+
+<h2 id="as-a-table">As a table<a class="anchor" href="#as-a-table" aria-label="Link to this section">#</a></h2>
+<p><code>CsvTable</code> gives the same named access plus querying:</p>
+<div class="codeblock"><pre><code>final table = CsvTable.parse('name,age,city\nAlice,30,NYC\nBob,25,LA');
+
+table.rows.first['city']; // NYC
+print(table.toFormattedString()); // aligned, readable output</code></pre></div>
+<h2 id="when-the-file-has-no-header">When the file has no header<a class="anchor" href="#when-the-file-has-no-header" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final codec = CsvCodec(CsvConfig(hasHeader: false));</code></pre></div>
+<h2 id="when-the-header-is-not-the-first-line">When the header is not the first line<a class="anchor" href="#when-the-header-is-not-the-first-line" aria-label="Link to this section">#</a></h2>
+<p>Drop the rows above it before the header is read:</p>
+<div class="codeblock"><pre><code>final codec = CsvCodec(CsvConfig(skipRows: 2, hasHeader: true));</code></pre></div><nav class="next" aria-label="Related guides"><a href="/query-csv">Query and group</a><a href="/csv-to-json">CSV to JSON</a></nav>
+      <footer class="pagefoot">
+        csv_plus is open source under the MIT licence.
+        <a href="https://pub.dev/packages/csv_plus">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/csv_plus">Source</a> &middot;
+        <a href="https://pub.dev/documentation/csv_plus/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#decode-with-headers">Decode with headers</a></li><li><a href="#as-a-table">As a table</a></li><li><a href="#when-the-file-has-no-header">When the file has no header</a></li><li><a href="#when-the-header-is-not-the-first-line">When the header is not the first line</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

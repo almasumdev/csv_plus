@@ -203,10 +203,15 @@ them, or copy any snippet from [Getting started](#getting-started) below.
 
 ## Other useful links
 
+- [Documentation and guides](https://csv-plus.web.app)
 - [API reference](https://pub.dev/documentation/csv_plus/latest/)
 - [Source code on GitHub](https://github.com/almasumdev/csv_plus)
 - [Changelog](https://github.com/almasumdev/csv_plus/blob/main/CHANGELOG.md)
 - [Issue tracker](https://github.com/almasumdev/csv_plus/issues)
+
+Working with spreadsheets rather than plain CSV?
+[excel_plus](https://pub.dev/packages/excel_plus) reads and writes `.xlsx`
+files and uses this package for its CSV import and export.
 
 ## Installation
 

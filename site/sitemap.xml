@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://csv-plus.web.app/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://csv-plus.web.app/parse-csv</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/read-csv-file</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/write-csv</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/csv-headers</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/type-inference</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/query-csv</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/csv-to-json</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/csv-schema</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/tsv-and-delimiters</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/large-csv-files</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+</urlset>
