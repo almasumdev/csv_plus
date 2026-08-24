@@ -1,3 +1,29 @@
+## 1.3.0
+
+Opt-in ISO-8601 date and date-time inference. Additive and
+backward-compatible.
+
+### New
+
+- `CsvConfig(parseDates: true)` turns a field in ISO-8601 form into a real
+  `DateTime` during a typed decode, instead of leaving it as text. It applies
+  everywhere inference does: `decode`, `decodeToTable`, `decodeToMaps`, the
+  streaming `CsvDecoder`, and `bindBytes`. Off by default, so nothing changes
+  for existing code.
+- A value must start with `YYYY-MM-DD`; a time part may follow after a `T` or a
+  space, with optional fractional seconds and a `Z` or numeric offset. A value
+  with no offset reads as local time, one with an offset as UTC. Ambiguous
+  locale formats such as `03/04/2024` stay text, as do quoted fields and
+  unpunctuated runs such as `20240131`.
+- Every date and time field is range-checked before parsing, so an impossible
+  value stays text instead of silently becoming the wrong date. `DateTime.parse`
+  rolls `2024-13-45` over to 14 February 2025; csv_plus does not.
+- `FastDecoder.tryParseIsoDateTime` exposes the same strict parser, and
+  `FastDecoder.inferType` takes an optional `parseDates` flag.
+
+A `DateTime` encodes back to a form that decodes to the same value, so a
+decode/encode round trip is lossless in both local and UTC.
+
 ## 1.2.1
 
 ### Changed

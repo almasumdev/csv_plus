@@ -61,6 +61,10 @@
           "destination": "/type-inference.html"
         },
         {
+          "source": "/csv-dates",
+          "destination": "/csv-dates.html"
+        },
+        {
           "source": "/query-csv",
           "destination": "/query-csv.html"
         },

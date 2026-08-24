@@ -103,6 +103,7 @@ class _StateMachine {
   late final List<int> _delimCodes = config.fieldDelimiter.codeUnits;
   late final bool _singleDelim = _delimCodes.length == 1;
   late final bool _dynamicTyping = config.dynamicTyping;
+  late final bool _parseDates = config.parseDates;
   late final bool _skipEmpty = config.skipEmptyLines;
   late final bool _hasHeader = config.hasHeader;
   late final bool _strict = config.strict;
@@ -435,7 +436,7 @@ class _StateMachine {
     if (_isQuoted) {
       value = raw;
     } else if (_dynamicTyping && !isHeaderRow) {
-      value = FastDecoder.inferType(raw);
+      value = FastDecoder.inferType(raw, parseDates: _parseDates);
     } else {
       value = raw;
     }

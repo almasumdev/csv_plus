@@ -13,6 +13,9 @@ const _upperE = 69; // E
 const _lowerF = 102; // f
 const _lowerT = 116; // t
 const _plus = 43; // +
+const _space = 32; //
+const _upperT = 84; // T
+const _colon = 58; // :
 const _bom = 0xFEFF;
 
 // 'true' / 'false' byte sequences
@@ -97,6 +100,7 @@ class FastDecoder {
     final escapeCode = config.escapeCharacter.codeUnitAt(0);
     final skipEmpty = config.skipEmptyLines;
     final dynamicTyping = config.dynamicTyping;
+    final parseDates = config.parseDates;
     final transform = config.decoderTransform;
     final hasHeader = config.hasHeader;
     final strict = config.strict;
@@ -418,6 +422,9 @@ class FastDecoder {
               cursor++;
             }
             cell = input.substring(start, cursor);
+          }
+          if (parseDates && cell is String) {
+            cell = tryParseIsoDateTime(cell) ?? cell;
           }
           if (hasTransform) {
             final hdr = (headers != null && cellIdx < headers.length)
@@ -786,7 +793,87 @@ class FastDecoder {
   ///   (`007`), a leading plus sign (`+1`), surrounding whitespace, digit
   ///   runs longer than 15 (exact on VM but not on the web), and values
   ///   that would parse to a non-finite double (`1e999`).
-  static dynamic inferType(String value) {
+  /// - With [parseDates], a value still reading as text is parsed as an
+  ///   ISO-8601 date or date-time when it matches [tryParseIsoDateTime].
+  static dynamic inferType(String value, {bool parseDates = false}) {
+    final inferred = _inferScalar(value);
+    if (parseDates && inferred is String) {
+      return tryParseIsoDateTime(inferred) ?? inferred;
+    }
+    return inferred;
+  }
+
+  /// Parses [value] as an ISO-8601 date or date-time, or returns `null` when
+  /// it is not one.
+  ///
+  /// The value must start with `YYYY-MM-DD`, and a time part may follow after
+  /// a `T` or a space (`HH`, `HH:mm`, or `HH:mm:ss`, with optional fractional
+  /// seconds and a `Z` or numeric offset).
+  ///
+  /// This is deliberately stricter than [DateTime.parse], which accepts
+  /// unpunctuated runs such as `20240131` that are far more likely to be
+  /// identifiers than dates, and which silently rolls impossible values over
+  /// (`2024-13-45` becomes 2025-02-14). Every field is range-checked first, so
+  /// an impossible date or time stays text instead of becoming the wrong one.
+  static DateTime? tryParseIsoDateTime(String value) {
+    final len = value.length;
+    // 'YYYY-MM-DD' at the shortest; a fractional offset date-time fits in 32.
+    if (len < 10 || len > 40) return null;
+    if (value.codeUnitAt(4) != _minus || value.codeUnitAt(7) != _minus) {
+      return null;
+    }
+    final year = _twoOrFourDigits(value, 0, 4);
+    final month = _twoOrFourDigits(value, 5, 7);
+    final day = _twoOrFourDigits(value, 8, 10);
+    if (year < 0 || month < 1 || month > 12) return null;
+    if (day < 1 || day > _daysInMonth(year, month)) return null;
+
+    if (len > 10) {
+      final sep = value.codeUnitAt(10);
+      if ((sep != _upperT && sep != _space) || len < 13) return null;
+      final hour = _twoOrFourDigits(value, 11, 13);
+      if (hour < 0 || hour > 23) return null;
+      if (len > 13 && value.codeUnitAt(13) == _colon) {
+        if (len < 16) return null;
+        final minute = _twoOrFourDigits(value, 14, 16);
+        if (minute < 0 || minute > 59) return null;
+        if (len > 16 && value.codeUnitAt(16) == _colon) {
+          if (len < 19) return null;
+          final second = _twoOrFourDigits(value, 17, 19);
+          if (second < 0 || second > 59) return null;
+        }
+      } else if (len > 13) {
+        // Unpunctuated time (T0930): rejected, as the date part is.
+        final c = value.codeUnitAt(13);
+        if (c >= _zero && c <= _nine) return null;
+      }
+    }
+    return DateTime.tryParse(value);
+  }
+
+  /// Reads [start] (inclusive) to [end] (exclusive) as a decimal number, or
+  /// `-1` when any character in that span is not a digit.
+  static int _twoOrFourDigits(String value, int start, int end) {
+    var n = 0;
+    for (var i = start; i < end; i++) {
+      final c = value.codeUnitAt(i);
+      if (c < _zero || c > _nine) return -1;
+      n = n * 10 + (c - _zero);
+    }
+    return n;
+  }
+
+  /// Number of days in [month] of [year], honouring leap years.
+  static int _daysInMonth(int year, int month) {
+    if (month == 2) {
+      final leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+      return leap ? 29 : 28;
+    }
+    return (month == 4 || month == 6 || month == 9 || month == 11) ? 30 : 31;
+  }
+
+  /// Numeric, boolean, and empty-field inference, before any date handling.
+  static dynamic _inferScalar(String value) {
     if (value.isEmpty) return null;
     if (value == 'true') return true;
     if (value == 'false') return false;

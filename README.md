@@ -86,6 +86,7 @@ cd benchmark/compare && dart pub get && dart run bench.dart
   - [Encode and decode](#encode-and-decode)
   - [Header-aware rows](#header-aware-rows)
   - [Type inference and typed decoders](#type-inference-and-typed-decoders)
+  - [Date and time inference](#date-and-time-inference)
   - [Query and transform with CsvTable](#query-and-transform-with-csvtable)
   - [Aggregate and group](#aggregate-and-group)
   - [Stream large files](#stream-large-files)
@@ -115,6 +116,7 @@ Flutter platform.
 - Lenient (`decodeFlexible`) mode: trims whitespace and recovers unmatched quotes
 - Header-aware rows (`CsvRow`) with `row['name']` and `row[0]` access, or `decodeToMaps` for a list of header-keyed maps
 - Comment-line skipping (`comment: '#'`) and row windowing (`skipRows` / `maxRows`) to drop preambles and read a slice
+- Opt-in ISO-8601 date and date-time inference (`parseDates`), range-checked so `2024-13-45` stays text instead of rolling over
 - Delimiter auto-detection, BOM handling, and the Excel `sep=` hint
 
 </details>
@@ -164,7 +166,8 @@ Flutter platform.
 
 ## Limitations
 
-- ❌ Automatic date/time inference (dates stay text unless coerced with a schema)
+- ❌ Locale date formats (`03/04/2024`): only ISO-8601 is inferred, and
+  only when you ask for it. Use a `decoderTransform` for the rest.
 
 ## Roadmap
 
@@ -269,6 +272,39 @@ codec.decodeDoubles('1.5,2.5');      // List<List<double>>
 codec.decodeBooleans('true,0');      // List<List<bool>>  (true/false/1/0)
 codec.decodeFlexible('  a , b ');    // lenient: trims, recovers bad quotes
 ```
+
+### Date and time inference
+
+Dates stay text by default, because `03/04/2024` means two different days
+depending on where the file came from. Turn on `parseDates` and any field in
+ISO-8601 form becomes a real `DateTime`:
+
+```dart
+final codec = CsvCodec(const CsvConfig(parseDates: true));
+
+codec.decode('when,who\n2024-01-31,Alice');
+// ['when', 'who'], [DateTime(2024, 1, 31), 'Alice']
+
+codec.decode('at\n2024-01-31T09:30:00Z');   // a UTC DateTime
+codec.decode('at\n2024-01-31 09:30:00');    // a space separator works too
+```
+
+A value has to start with `YYYY-MM-DD`. A time part may follow after a `T` or a
+space, with optional fractional seconds and a `Z` or `+05:30` offset. A value
+with no offset reads as local time; one with an offset reads as UTC.
+
+Everything else stays text, including the cases that trip up other parsers:
+
+```dart
+codec.decode('a,b,c,d\n03/04/2024,2024-13-45,20240131,"2024-01-31"');
+// ['03/04/2024', '2024-13-45', 20240131, '2024-01-31']
+```
+
+`2024-13-45` is the interesting one. `DateTime.parse` quietly rolls it over to
+14 February 2025; csv_plus range-checks every field first, so an impossible
+date stays text instead of becoming the wrong one. Quoted fields are never
+inferred, and a `DateTime` encodes back to a form that decodes to the same
+value, so a round trip is lossless.
 
 ### Query and transform with CsvTable
 

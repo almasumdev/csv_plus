@@ -38,6 +38,20 @@ class CsvConfig {
   /// inferred. See `FastDecoder.inferType` for the full rules.
   final bool dynamicTyping;
 
+  /// Automatically parse ISO-8601 dates and date-times into [DateTime].
+  ///
+  /// Off by default, and only applied when [dynamicTyping] is on. A field is
+  /// converted when it starts with `YYYY-MM-DD`, optionally followed by a time
+  /// (`2024-01-31T09:30:00`); a space in place of the `T`, fractional seconds,
+  /// and a trailing `Z` or `+05:30` offset are all accepted. Anything else
+  /// stays text, including ambiguous locale formats such as `03/04/2024` and
+  /// impossible dates such as `2024-13-45`.
+  ///
+  /// A value with no offset reads as a local [DateTime]; one with a `Z` or a
+  /// numeric offset reads as UTC. Quoted fields are never inferred, so
+  /// `"2024-01-31"` stays a string.
+  final bool parseDates;
+
   /// Throw [CsvParseException] on structurally malformed input instead of
   /// recovering: a character after a closing quote, or an unterminated
   /// quoted field at end of input.
@@ -98,6 +112,7 @@ class CsvConfig {
     this.skipEmptyLines = true,
     this.hasHeader = false,
     this.dynamicTyping = true,
+    this.parseDates = false,
     this.strict = false,
     this.comment,
     this.skipRows = 0,
@@ -115,6 +130,7 @@ class CsvConfig {
     this.skipEmptyLines = true,
     this.hasHeader = false,
     this.dynamicTyping = true,
+    this.parseDates = false,
     this.strict = false,
     this.comment,
     this.skipRows = 0,
@@ -136,6 +152,7 @@ class CsvConfig {
     this.skipEmptyLines = true,
     this.hasHeader = false,
     this.dynamicTyping = true,
+    this.parseDates = false,
     this.strict = false,
     this.comment,
     this.skipRows = 0,
@@ -156,6 +173,7 @@ class CsvConfig {
     this.skipEmptyLines = true,
     this.hasHeader = false,
     this.dynamicTyping = true,
+    this.parseDates = false,
     this.strict = false,
     this.comment,
     this.skipRows = 0,
@@ -182,6 +200,7 @@ class CsvConfig {
     bool? skipEmptyLines,
     bool? hasHeader,
     bool? dynamicTyping,
+    bool? parseDates,
     bool? strict,
     String? comment,
     int? skipRows,
@@ -202,6 +221,7 @@ class CsvConfig {
       skipEmptyLines: skipEmptyLines ?? this.skipEmptyLines,
       hasHeader: hasHeader ?? this.hasHeader,
       dynamicTyping: dynamicTyping ?? this.dynamicTyping,
+      parseDates: parseDates ?? this.parseDates,
       strict: strict ?? this.strict,
       comment: comment ?? this.comment,
       skipRows: skipRows ?? this.skipRows,

@@ -28,6 +28,7 @@ extension FastDecoderFlexible on FastDecoder {
     final escapeCode = config.escapeCharacter.codeUnitAt(0);
     final skipEmpty = config.skipEmptyLines;
     final dynamicTyping = config.dynamicTyping;
+    final parseDates = config.parseDates;
     final hasHeader = config.hasHeader;
     final hasComment = config.comment != null && config.comment!.isNotEmpty;
     final commentCode = hasComment ? config.comment!.codeUnitAt(0) : -1;
@@ -180,7 +181,9 @@ extension FastDecoderFlexible on FastDecoder {
           }
           final value = input.substring(start, cursor).trim();
           if (dynamicTyping) {
-            currentRow.add(FastDecoder.inferType(value));
+            currentRow.add(
+              FastDecoder.inferType(value, parseDates: parseDates),
+            );
           } else {
             currentRow.add(value);
           }

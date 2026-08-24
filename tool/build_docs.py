@@ -19,7 +19,7 @@ def emit_asset(src, name, ext):
 
 BASE    = "https://csv-plus.web.app"
 OUT     = "site"
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 # IndexNow verification key. Must stay in step with the file emitted
 # at the site root, or Bing and Yandex reject the submission.
 INDEXNOW_KEY = "c2743e0e28ac8afd3676c4aa4cc03eb4"
@@ -35,6 +35,7 @@ GROUPS = [
     ("Working with data", [
         ("csv-headers",    "Headers and rows"),
         ("type-inference", "Type inference"),
+        ("csv-dates",      "Dates and times"),
         ("query-csv",      "Query and group"),
         ("csv-to-json",    "CSV to JSON"),
     ]),
@@ -498,7 +499,80 @@ codec.decodeBooleans('true,0');      // List<List<bool>>  (true/false/1/0)
     faq=[("Why does csv_plus keep 007 as a string?",
           "Because converting it to 7 would lose the leading zeros permanently. Values that look like padded identifiers are deliberately left as text."),
          ("How do I stop CSV type inference in Dart?",
-          "Pass CsvConfig(inferTypes: false), or use decodeStrings to get every field as a String.")],
+          "Pass CsvConfig(dynamicTyping: false), or use decodeStrings to get every field as a String.")],
+))
+
+# ---------------------------------------------------------------- dates
+PAGES.append(dict(
+    slug="csv-dates",
+    title="How to Parse Dates from a CSV File in Dart",
+    desc="Turn ISO 8601 date and date-time columns into real DateTime values while decoding CSV in Dart, with range checks that keep an impossible date as text.",
+    h1="Dates and times",
+    lede="Dates stay text until you ask for them, because <code>03/04/2024</code> means two different days depending on where the file came from.",
+    body=INSTALL + """
+<h2>Turning it on</h2>
+""" + pre("""
+final codec = CsvCodec(const CsvConfig(parseDates: true));
+
+codec.decode('when,who\\n2024-01-31,Alice');
+// [[when, who], [DateTime(2024, 1, 31), Alice]]
+""") + """
+<p>It applies everywhere inference already applies: <code>decode</code>, <code>decodeToTable</code>, <code>decodeToMaps</code>, the streaming <code>CsvDecoder</code>, and <code>bindBytes</code>.</p>
+
+<h2>What is accepted</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Text</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><code>2024-01-31</code></td><td>local midnight</td></tr>
+<tr><td><code>2024-01-31T09:30:00</code></td><td>local date and time</td></tr>
+<tr><td><code>2024-01-31 09:30:00</code></td><td>a space works as the separator</td></tr>
+<tr><td><code>2024-01-31T09:30:00.123</code></td><td>fractional seconds kept</td></tr>
+<tr><td><code>2024-01-31T09:30:00Z</code></td><td>UTC</td></tr>
+<tr><td><code>2024-01-31T09:30:00+05:30</code></td><td>offset applied, UTC returned</td></tr>
+</tbody></table></div>
+<p>A value has to start with <code>YYYY-MM-DD</code>. A value with no offset reads as local time, one with an offset reads as UTC.</p>
+
+<h2>What stays text</h2>
+""" + pre("""
+codec.decode('a,b,c,d\\n03/04/2024,2024-13-45,20240131,"2024-01-31"');
+// ['03/04/2024', '2024-13-45', 20240131, '2024-01-31']
+""") + """
+<p>Ambiguous locale formats are left alone. So are unpunctuated runs such as <code>20240131</code>, which are far more likely to be identifiers than dates, and quoted fields, which always opt out of inference.</p>
+
+<h2>An impossible date stays a string</h2>
+<p><code>2024-13-45</code> is the case worth knowing about. <code>DateTime.parse</code> accepts it and quietly rolls it over to 14 February 2025, so a typo in a source file becomes a real date that is simply wrong.</p>
+""" + pre("""
+DateTime.parse('2024-13-45');                 // 2025-02-14  (!)
+FastDecoder.tryParseIsoDateTime('2024-13-45'); // null
+""") + """
+<p>csv_plus range-checks the year, month, day, hour, minute and second before parsing, and honours leap years. <code>2024-02-29</code> parses; <code>2023-02-29</code> does not.</p>
+
+<h2>Other date formats</h2>
+<p>For anything that is not ISO 8601, convert the column yourself with a <code>decoderTransform</code>. It runs on every data cell and receives the column header, so you can target one column.</p>
+""" + pre("""
+final codec = CsvCodec(CsvConfig(
+  hasHeader: true,
+  decoderTransform: (value, index, header) {
+    if (header != 'when' || value is! String) return value;
+    final parts = value.split('/');            // 03/04/2024, day first
+    if (parts.length != 3) return value;
+    return DateTime(
+      int.parse(parts[2]),
+      int.parse(parts[1]),
+      int.parse(parts[0]),
+    );
+  },
+));
+""") + """
+<h2>Writing dates back</h2>
+<p>A <code>DateTime</code> encodes to a form that decodes to the same value, in both local and UTC, so a decode and encode round trip is lossless.</p>
+""" + nxt([("type-inference", "Type inference"), ("csv-schema", "Schema")]),
+    faq=[("How do I parse a date column from a CSV file in Dart?",
+          "Decode with CsvConfig(parseDates: true). Any field in ISO 8601 form, such as 2024-01-31 or 2024-01-31T09:30:00Z, comes back as a DateTime."),
+         ("Why is my CSV date still a string?",
+          "Date inference is off by default, and only ISO 8601 values are converted. A format such as 03/04/2024 is ambiguous, so it stays text; convert it with a decoderTransform."),
+         ("Does csv_plus handle time zones in CSV dates?",
+          "Yes. A value with a Z or a numeric offset such as +05:30 is normalised to UTC; a value with no offset is read as local time.")],
 ))
 
 # ---------------------------------------------------------------- query
