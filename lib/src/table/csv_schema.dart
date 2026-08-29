@@ -11,6 +11,7 @@ class CsvSchema {
   /// Whether fewer columns than defined are allowed.
   final bool allowMissingColumns;
 
+  /// Creates a schema from [columns].
   const CsvSchema({
     required this.columns,
     this.allowExtraColumns = true,
@@ -295,6 +296,7 @@ class CsvColumnDef {
   /// Regex pattern the string value must match.
   final String? pattern;
 
+  /// Defines the rules for one named column.
   const CsvColumnDef({
     required this.name,
     this.type,

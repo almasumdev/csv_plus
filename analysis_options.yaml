@@ -13,6 +13,12 @@
 
 include: package:lints/recommended.yaml
 
+linter:
+  rules:
+    # The dartdoc requirement is a house rule; enforce it rather than
+    # relying on review to catch an undocumented public member.
+    public_member_api_docs: true
+
 analyzer:
   exclude:
     # A separate package with its own pubspec and third-party deps

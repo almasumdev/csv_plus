@@ -107,6 +107,7 @@ class CsvTable {
   /// Whether the table has no data rows.
   bool get isEmpty => _data.isEmpty;
 
+  /// Whether the table has at least one data row.
   bool get isNotEmpty => _data.isNotEmpty;
 
   /// Iterate over rows as [CsvRow].
