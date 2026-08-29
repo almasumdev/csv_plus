@@ -1,0 +1,42 @@
+name: Feature request
+description: Something the package cannot do yet
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: Describe the task, not the API you have in mind. There may already be a way.
+      placeholder: I need to read a file my bank exports in Windows-1252 with semicolons
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What are you doing instead today
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Decoding
+        - Encoding
+        - Streaming and large files
+        - Type inference
+        - Table, query or schema
+        - Encodings
+        - File helpers
+        - Documentation
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the README and the documentation site to see whether this already exists.
+          required: true

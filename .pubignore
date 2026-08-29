@@ -16,3 +16,8 @@ tool/
 CLAUDE.md
 # Documentation website output. Deployed to Firebase, not shipped.
 site/
+
+# Hosting config and internal notes: repo-only, never part of the package.
+firebase.json
+.firebaserc
+.claude/

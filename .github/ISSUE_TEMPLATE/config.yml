@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or help with a file
+    url: https://github.com/almasumdev/csv_plus/discussions
+    about: Ask here if you are not sure it is a bug. Questions stay searchable for the next person.
+  - name: Documentation and guides
+    url: https://csv-plus.web.app
+    about: Parsing, headers, type inference, schemas, encodings, bytes and large files.

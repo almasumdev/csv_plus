@@ -940,9 +940,14 @@ def _sync_firebase_rewrites(page_slugs):
         return
     conf = json.load(io.open(fb_path, encoding="utf-8"))
     hosting = conf.get("hosting")
-    target = hosting[0] if isinstance(hosting, list) else hosting
-    if target is None:
+    targets = hosting if isinstance(hosting, list) else [hosting]
+    # Match on the output directory, not on position: a repo may also host
+    # an example web app, and that target has its own single rewrite.
+    docs = [t for t in targets if t and t.get("public") == OUT]
+    if len(docs) != 1:
+        print("firebase.json: no single hosting target for %r, skipped" % OUT)
         return
+    target = docs[0]
     wanted = [
         {"source": "/" + p, "destination": "/" + p + ".html"}
         for p in page_slugs if p != "index"

@@ -1,0 +1,85 @@
+name: Bug report
+description: A file parses wrong, or the output is not what you expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Quoting, line endings and encodings are where the surprises live. The
+        exact bytes of one bad line are usually more useful than the whole file.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+      placeholder: a quoted field containing a comma comes back split into two fields
+    validations:
+      required: true
+
+  - type: textarea
+    id: input
+    attributes:
+      label: The input
+      description: The few lines that reproduce it, exactly as they are in the file.
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: path
+    attributes:
+      label: Which path
+      multiple: true
+      options:
+        - Batch decode
+        - Streaming decode
+        - Decode from bytes
+        - Encoding
+        - CsvTable, query or schema
+        - File helpers (package:csv_plus/io.dart)
+    validations:
+      required: true
+
+  - type: input
+    id: source
+    attributes:
+      label: Where did the file come from
+      placeholder: Excel 365 export, Google Sheets, a Postgres COPY, a bank statement
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: csv_plus version
+      placeholder: 1.4.0
+    validations:
+      required: true
+
+  - type: input
+    id: sdk
+    attributes:
+      label: Dart or Flutter version
+      placeholder: Dart 3.8.0, or Flutter 3.35.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Code that reproduces it
+      description: Include the CsvConfig you are using, if it is not the default.
+      render: dart
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I reproduced this on the latest published version.
+          required: true
+        - label: I checked whether strict mode changes the behaviour.
+          required: false
