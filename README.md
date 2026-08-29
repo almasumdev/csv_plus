@@ -118,6 +118,8 @@ Flutter platform.
 - Comment-line skipping (`comment: '#'`) and row windowing (`skipRows` / `maxRows`) to drop preambles and read a slice
 - Opt-in ISO-8601 date and date-time inference (`parseDates`), range-checked so `2024-13-45` stays text instead of rolling over
 - Delimiter auto-detection, BOM handling, and the Excel `sep=` hint
+- Decode straight from bytes (`decodeBytes`) for a file picker, a bundled asset, or an HTTP body, including on web
+- Non UTF-8 files: `CsvCharset.latin1` and `CsvCharset.windows1252` for the encodings Excel on Windows writes
 
 </details>
 
@@ -129,6 +131,7 @@ Flutter platform.
 - Encode rows, maps, uniform-typed grids, and tables
 - Custom delimiter, quote, escape, and line-ending configuration
 - Optional UTF-8 BOM for Excel compatibility
+- `encodeToBytes` for a file write, a web download, or a request body
 
 </details>
 
@@ -352,6 +355,40 @@ Any string or byte stream works, with backpressure handled for you:
 ```dart
 final rows = codec.decoder.bindBytes(byteStream); // Stream<List<int>>
 ```
+
+### Bytes, pickers and assets
+
+A file picker, a bundled asset, and an HTTP response all hand you bytes rather
+than a path, and on Flutter web there is no path at all. Decode them directly:
+
+```dart
+// file_picker, with withData: true so bytes are populated on every platform
+final rows = const CsvCodec().decodeBytes(result.files.single.bytes!);
+
+// a bundled asset
+final data = await rootBundle.load('assets/products.csv');
+final table = const CsvCodec().decodeBytesToTable(data.buffer.asUint8List());
+
+// straight to JSON
+final json = jsonEncode(const CsvCodec().decodeBytesToMaps(bytes));
+```
+
+The byte order mark, the `sep=` hint and delimiter detection all apply, exactly
+as they do for a string. Going the other way, `encodeToBytes` returns UTF-8 bytes
+ready for `File.writeAsBytes`, a download, or a request body.
+
+Files that are not UTF-8, which is what Excel on Windows writes, take a charset:
+
+```dart
+final rows = const CsvCodec().decodeBytes(
+  bytes,
+  charset: CsvCharset.windows1252,
+);
+```
+
+`CsvCharset.utf8` (the default), `.latin1` and `.windows1252` are built in, with
+no extra dependency. See [reading bytes](https://csv-plus.web.app/csv-bytes) and
+[encodings](https://csv-plus.web.app/csv-encoding).
 
 ### Read and write files
 

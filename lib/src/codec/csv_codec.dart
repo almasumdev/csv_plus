@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'codec_adapter.dart';
+import '../core/charset.dart';
 import '../core/csv_config.dart';
 import '../decoder/csv_decoder.dart';
 import '../decoder/delimiter_detector.dart';
@@ -128,8 +132,70 @@ class CsvCodec {
   }
 
   // ---------------------------------------------------------------------------
+  // Batch decode from bytes
+  // ---------------------------------------------------------------------------
+
+  /// Decode CSV [bytes] to a list of rows.
+  ///
+  /// This is the entry point for the bytes Flutter hands you: `PlatformFile.bytes`
+  /// from a file picker, `rootBundle.load()` for a bundled asset, or an HTTP
+  /// response body. It decodes the bytes with [charset] and then follows the
+  /// same path as [decode], so the byte order mark, the `sep=` hint, and
+  /// delimiter auto-detection are all handled.
+  ///
+  /// [charset] defaults to [CsvCharset.utf8]. Pass [CsvCharset.windows1252] for
+  /// a file exported by Excel on Windows that is not UTF-8.
+  List<List<dynamic>> decodeBytes(
+    List<int> bytes, {
+    CsvCharset charset = CsvCharset.utf8,
+  }) {
+    return decode(charset.decodeBytes(bytes));
+  }
+
+  /// Decode CSV [bytes] with the first row as headers. Returns [CsvRow] objects.
+  ///
+  /// See [decodeBytes] for how [charset] is applied.
+  List<CsvRow> decodeBytesWithHeaders(
+    List<int> bytes, {
+    CsvCharset charset = CsvCharset.utf8,
+  }) {
+    return decodeWithHeaders(charset.decodeBytes(bytes));
+  }
+
+  /// Decode CSV [bytes] into a [CsvTable] with headers.
+  ///
+  /// See [decodeBytes] for how [charset] is applied.
+  CsvTable decodeBytesToTable(
+    List<int> bytes, {
+    CsvCharset charset = CsvCharset.utf8,
+  }) {
+    return decodeToTable(charset.decodeBytes(bytes));
+  }
+
+  /// Decode CSV [bytes] into a list of maps keyed by header name.
+  ///
+  /// Together with `dart:convert`'s `jsonEncode` this is the whole of a CSV to
+  /// JSON conversion. See [decodeBytes] for how [charset] is applied.
+  List<Map<String, dynamic>> decodeBytesToMaps(
+    List<int> bytes, {
+    CsvCharset charset = CsvCharset.utf8,
+  }) {
+    return decodeToMaps(charset.decodeBytes(bytes));
+  }
+
+  // ---------------------------------------------------------------------------
   // Batch encode
   // ---------------------------------------------------------------------------
+
+  /// Encode rows to UTF-8 CSV bytes.
+  ///
+  /// The counterpart to [decodeBytes], for handing a file straight to
+  /// `File.writeAsBytes`, a web download, or an HTTP request body. When
+  /// [CsvConfig.addBom] is set the returned bytes start with the UTF-8 byte
+  /// order mark, which is what Excel needs to open the file as UTF-8.
+  Uint8List encodeToBytes(List<List<dynamic>> rows) {
+    return utf8.encode(encode(rows));
+  }
 
   /// Encode rows to CSV string.
   String encode(List<List<dynamic>> rows) {

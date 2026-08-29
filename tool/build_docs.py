@@ -30,6 +30,7 @@ GROUPS = [
         ("index",          "Introduction"),
         ("parse-csv",      "Parse CSV"),
         ("read-csv-file",  "Read a file"),
+        ("csv-bytes",      "Read bytes"),
         ("write-csv",      "Write CSV"),
     ]),
     ("Working with data", [
@@ -42,6 +43,7 @@ GROUPS = [
     ("Control", [
         ("csv-schema",         "Schema and validation"),
         ("tsv-and-delimiters", "TSV and delimiters"),
+        ("csv-encoding",       "Encodings"),
     ]),
     ("Scale", [
         ("large-csv-files", "Large files"),
@@ -371,6 +373,121 @@ await for (final row in CsvFile.stream('huge.csv')) {
 """ + nxt([("parse-csv", "Parse CSV"), ("large-csv-files", "Large files"), ("write-csv", "Write CSV")]),
     faq=[("How do I read a CSV file in Dart?",
           "Import package:csv_plus/io.dart and await CsvFile.read with the path. For files too large to hold in memory, use CsvFile.stream instead.")],
+))
+
+# ---------------------------------------------------------------- bytes
+PAGES.append(dict(
+    slug="csv-bytes",
+    title="How to Parse CSV Bytes in Flutter: File Picker, Assets and Web",
+    desc="Decode CSV from a Uint8List in Flutter: file_picker PlatformFile.bytes, a bundled asset from rootBundle, or an HTTP response. Works on web, where there is no file path.",
+    h1="How to parse CSV bytes in Flutter",
+    lede="File pickers, assets and HTTP responses all hand you bytes, not a path. Decode them directly.",
+    body=INSTALL + """
+<h2>Why bytes and not a path</h2>
+<p>On Flutter web there is no file system path to open, so <code>file_picker</code> gives you <code>PlatformFile.bytes</code>. Bundled assets arrive from <code>rootBundle.load()</code> as <code>ByteData</code>, and an HTTP body arrives as <code>response.bodyBytes</code>. All three are byte lists.</p>
+<p><code>decodeBytes</code> takes them directly. The byte order mark, the <code>sep=</code> hint and delimiter detection are all applied on the way in, exactly as they are for a string.</p>
+<h2>From a file picker</h2>
+""" + pre("""
+import 'package:csv_plus/csv_plus.dart';
+import 'package:file_picker/file_picker.dart';
+
+final result = await FilePicker.platform.pickFiles(
+  type: FileType.custom,
+  allowedExtensions: ['csv'],
+  withData: true, // required on web, and convenient everywhere
+);
+
+final bytes = result?.files.single.bytes;
+if (bytes != null) {
+  final rows = const CsvCodec().decodeBytes(bytes);
+  print(rows.first);
+}
+""") + """
+<h2>From a bundled asset</h2>
+""" + pre("""
+import 'package:flutter/services.dart' show rootBundle;
+
+final data = await rootBundle.load('assets/products.csv');
+final rows = const CsvCodec().decodeBytes(data.buffer.asUint8List());
+""") + """
+<h2>From an HTTP response</h2>
+""" + pre("""
+final response = await http.get(Uri.parse('https://example.com/export.csv'));
+final table = const CsvCodec().decodeBytesToTable(response.bodyBytes);
+
+print(table.headers);
+""") + """
+<h2>Straight to maps or JSON</h2>
+<p><code>decodeBytesToMaps</code> keys every row by its header, which is most of a CSV to JSON conversion already:</p>
+""" + pre("""
+import 'dart:convert';
+
+final json = jsonEncode(const CsvCodec().decodeBytesToMaps(bytes));
+""") + """
+<p>The full set is <code>decodeBytes</code>, <code>decodeBytesWithHeaders</code>, <code>decodeBytesToTable</code> and <code>decodeBytesToMaps</code>, mirroring the string decoders.</p>
+<h2>Writing bytes back out</h2>
+<p><code>encodeToBytes</code> returns UTF-8 bytes ready for <code>File.writeAsBytes</code>, a web download, or an HTTP body:</p>
+""" + pre("""
+final bytes = const CsvCodec().encodeToBytes(rows);
+
+// For a file Excel will open as UTF-8, add the byte order mark:
+const forExcel = CsvCodec(CsvConfig(addBom: true));
+final excelBytes = forExcel.encodeToBytes(rows);
+""") + """
+<p>If the file is not UTF-8, see <a href="/csv-encoding">encodings</a>.</p>
+""" + nxt([("csv-encoding", "Encodings"), ("read-csv-file", "Read a file"), ("csv-to-json", "CSV to JSON")]),
+    faq=[("How do I read a CSV file picked with file_picker in Flutter?",
+          "Pick with withData: true so you get PlatformFile.bytes, then pass those bytes to CsvCodec().decodeBytes. This is the only option on Flutter web, where there is no file path."),
+         ("How do I parse a CSV asset in Flutter?",
+          "Load it with rootBundle.load and pass data.buffer.asUint8List() to CsvCodec().decodeBytes."),
+         ("Can I parse a Uint8List as CSV in Dart?",
+          "Yes. CsvCodec().decodeBytes accepts any List of int, including a Uint8List, and handles the byte order mark and delimiter detection for you.")],
+))
+
+# ---------------------------------------------------------------- encoding
+PAGES.append(dict(
+    slug="csv-encoding",
+    title="How to Read a Non UTF-8 CSV File in Dart: Latin-1 and Windows-1252",
+    desc="Decode CSV that is not UTF-8. Handle Windows-1252 files exported by Excel, Latin-1 accented characters, and the UTF-8 byte order mark, with no extra dependency.",
+    h1="Reading a CSV file that is not UTF-8",
+    lede="Excel on Windows does not write UTF-8. Pick the encoding instead of getting replacement characters.",
+    body=INSTALL + """
+<h2>The symptom</h2>
+<p>A name comes back with a replacement character instead of an accent, or a price shows a stray symbol where the euro sign should be. That file is not UTF-8. The Excel CSV export on Western European Windows writes Windows-1252, a single byte encoding, and reading those bytes as UTF-8 either throws or substitutes.</p>
+<h2>Pick the encoding</h2>
+<p>Pass a <code>CsvCharset</code> to any of the byte decoders:</p>
+""" + pre("""
+import 'package:csv_plus/csv_plus.dart';
+
+final rows = const CsvCodec().decodeBytes(
+  bytes,
+  charset: CsvCharset.windows1252,
+);
+""") + """
+<p>Three encodings are built in, with no extra dependency:</p>
+<ul>
+<li><code>CsvCharset.utf8</code>, the default. A leading byte order mark is stripped, and a malformed byte is replaced rather than thrown so one bad byte does not lose the file.</li>
+<li><code>CsvCharset.latin1</code>, also called ISO-8859-1. Every byte maps to the code point of the same value.</li>
+<li><code>CsvCharset.windows1252</code>, the usual Excel output on Windows. It matches Latin-1 except in the 32 slots from 0x80 to 0x9F, which hold the euro sign, curly quotes and dashes instead of control codes.</li>
+</ul>
+<h2>Which one do I need</h2>
+<p>If the file came out of Excel on Windows, try <code>windows1252</code> first. It is a superset of Latin-1 in practice, so it reads correctly in both cases and is the safer default of the two. Reach for <code>latin1</code> only when you know the source is strictly ISO-8859-1 and you want the control codes preserved.</p>
+<h2>The byte order mark</h2>
+<p>A UTF-8 byte order mark is stripped whichever encoding you choose, so it never gets glued onto your first column name. That is the bug behind a header that will not match: the key is not <code>name</code> but an invisible prefix followed by <code>name</code>.</p>
+<p>When writing, set <code>addBom</code> so Excel opens the result as UTF-8 rather than guessing:</p>
+""" + pre("""
+const codec = CsvCodec(CsvConfig(addBom: true));
+final bytes = codec.encodeToBytes(rows);
+""") + """
+<h2>Writing a non UTF-8 file</h2>
+<p>Output is always UTF-8. If a downstream tool truly requires a single byte encoding, encode to a string first and convert it yourself with the <code>latin1</code> encoder from <code>dart:convert</code>.</p>
+""" + nxt([("csv-bytes", "Read bytes"), ("write-csv", "Write CSV"), ("tsv-and-delimiters", "TSV and delimiters")]),
+    faq=[("How do I read a Windows-1252 CSV file in Dart?",
+          "Pass charset: CsvCharset.windows1252 to CsvCodec().decodeBytes. It is built in, so no extra dependency is needed."),
+         ("Why does my CSV show question marks or strange characters?",
+          "The file is almost certainly not UTF-8. Excel on Windows writes Windows-1252. Decode the bytes with charset: CsvCharset.windows1252 instead."),
+         ("Does csv_plus strip the UTF-8 BOM?",
+          "Yes, on every decode path and for every charset, so the mark never ends up attached to your first column name.")],
 ))
 
 # ---------------------------------------------------------------- write

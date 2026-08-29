@@ -1,3 +1,37 @@
+## 1.4.0
+
+Read the files other tools actually hand you: bytes in, bytes out, and the
+encodings Excel on Windows writes. Additive and backward-compatible.
+
+### New
+
+- `CsvCodec.decodeBytes` decodes CSV straight from a byte list, alongside
+  `decodeBytesWithHeaders`, `decodeBytesToTable` and `decodeBytesToMaps`. This
+  is the shape Flutter hands you: `PlatformFile.bytes` from a file picker,
+  `rootBundle.load()` for a bundled asset, and `response.bodyBytes` from an HTTP
+  call, and it is the only option on web, where there is no file path to open.
+  The byte order mark, the `sep=` hint and delimiter auto-detection all apply on
+  the way in, exactly as they do for a string.
+- `CsvCodec.encodeToBytes` returns UTF-8 bytes, ready for `File.writeAsBytes`, a
+  browser download, or a request body. With `CsvConfig(addBom: true)` the output
+  starts with the byte order mark that makes Excel open the file as UTF-8.
+- `CsvCharset` picks the encoding when a file is not UTF-8. `CsvCharset.latin1`
+  and `CsvCharset.windows1252` read the accented names and currency symbols that
+  a UTF-8 decoder replaces, and Windows-1252 is what the Excel CSV export writes
+  on Western European Windows. Pass it to any of the byte decoders. No new
+  dependency: Windows-1252 differs from Latin-1 only in 32 slots, so it is a
+  small constant table rather than a charset library.
+- A leading UTF-8 byte order mark is now stripped for the single byte encodings
+  too, so it can never be glued onto the first column name.
+
+### Docs
+
+- Two new guides: [reading bytes](https://csv-plus.web.app/csv-bytes), covering
+  file pickers, assets, HTTP bodies and web, and
+  [encodings](https://csv-plus.web.app/csv-encoding) for non UTF-8 files.
+- `example/bytes_example.dart` runs the whole path end to end, including the
+  same bytes read as UTF-8 and as Windows-1252 so the difference is visible.
+
 ## 1.3.0
 
 Opt-in ISO-8601 date and date-time inference. Additive and

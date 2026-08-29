@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to Parse CSV Bytes in Flutter: File Picker, Assets and Web</title>
+<meta name="description" content="Decode CSV from a Uint8List in Flutter: file_picker PlatformFile.bytes, a bundled asset from rootBundle, or an HTTP response. Works on web, where there is no file path.">
+<link rel="canonical" href="https://csv-plus.web.app/csv-bytes">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Parse CSV Bytes in Flutter: File Picker, Assets and Web">
+<meta property="og:description" content="Decode CSV from a Uint8List in Flutter: file_picker PlatformFile.bytes, a bundled asset from rootBundle, or an HTTP response. Works on web, where there is no file path.">
+<meta property="og:url" content="https://csv-plus.web.app/csv-bytes">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.5313a1aed0.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "How to parse CSV bytes in Flutter", "description": "Decode CSV from a Uint8List in Flutter: file_picker PlatformFile.bytes, a bundled asset from rootBundle, or an HTTP response. Works on web, where there is no file path.", "url": "https://csv-plus.web.app/csv-bytes", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "csv_plus", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/csv_plus"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I read a CSV file picked with file_picker in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Pick with withData: true so you get PlatformFile.bytes, then pass those bytes to CsvCodec().decodeBytes. This is the only option on Flutter web, where there is no file path."}}, {"@type": "Question", "name": "How do I parse a CSV asset in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Load it with rootBundle.load and pass data.buffer.asUint8List() to CsvCodec().decodeBytes."}}, {"@type": "Question", "name": "Can I parse a Uint8List as CSV in Dart?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. CsvCodec().decodeBytes accepts any List of int, including a Uint8List, and handles the byte order mark and delimiter detection for you."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">csv_plus</a>
+  <span class="ver">v1.3.0</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/csv_plus"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/csv_plus" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/parse-csv">Parse CSV</a></li><li><a href="/read-csv-file">Read a file</a></li><li><a href="/csv-bytes" aria-current="page">Read bytes</a></li><li><a href="/write-csv">Write CSV</a></li></ul><h2>Working with data</h2><ul><li><a href="/csv-headers">Headers and rows</a></li><li><a href="/type-inference">Type inference</a></li><li><a href="/csv-dates">Dates and times</a></li><li><a href="/query-csv">Query and group</a></li><li><a href="/csv-to-json">CSV to JSON</a></li></ul><h2>Control</h2><ul><li><a href="/csv-schema">Schema and validation</a></li><li><a href="/tsv-and-delimiters">TSV and delimiters</a></li><li><a href="/csv-encoding">Encodings</a></li></ul><h2>Scale</h2><ul><li><a href="/large-csv-files">Large files</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>How to parse CSV bytes in Flutter</h1>
+      <p class="lede">File pickers, assets and HTTP responses all hand you bytes, not a path. Decode them directly.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>dart pub add csv_plus</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:csv_plus/csv_plus.dart';</code></pre></div>
+<h2 id="why-bytes-and-not-a-path">Why bytes and not a path<a class="anchor" href="#why-bytes-and-not-a-path" aria-label="Link to this section">#</a></h2>
+<p>On Flutter web there is no file system path to open, so <code>file_picker</code> gives you <code>PlatformFile.bytes</code>. Bundled assets arrive from <code>rootBundle.load()</code> as <code>ByteData</code>, and an HTTP body arrives as <code>response.bodyBytes</code>. All three are byte lists.</p>
+<p><code>decodeBytes</code> takes them directly. The byte order mark, the <code>sep=</code> hint and delimiter detection are all applied on the way in, exactly as they are for a string.</p>
+<h2 id="from-a-file-picker">From a file picker<a class="anchor" href="#from-a-file-picker" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>import 'package:csv_plus/csv_plus.dart';
+import 'package:file_picker/file_picker.dart';
+
+final result = await FilePicker.platform.pickFiles(
+  type: FileType.custom,
+  allowedExtensions: ['csv'],
+  withData: true, // required on web, and convenient everywhere
+);
+
+final bytes = result?.files.single.bytes;
+if (bytes != null) {
+  final rows = const CsvCodec().decodeBytes(bytes);
+  print(rows.first);
+}</code></pre></div>
+<h2 id="from-a-bundled-asset">From a bundled asset<a class="anchor" href="#from-a-bundled-asset" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>import 'package:flutter/services.dart' show rootBundle;
+
+final data = await rootBundle.load('assets/products.csv');
+final rows = const CsvCodec().decodeBytes(data.buffer.asUint8List());</code></pre></div>
+<h2 id="from-an-http-response">From an HTTP response<a class="anchor" href="#from-an-http-response" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final response = await http.get(Uri.parse('https://example.com/export.csv'));
+final table = const CsvCodec().decodeBytesToTable(response.bodyBytes);
+
+print(table.headers);</code></pre></div>
+<h2 id="straight-to-maps-or-json">Straight to maps or JSON<a class="anchor" href="#straight-to-maps-or-json" aria-label="Link to this section">#</a></h2>
+<p><code>decodeBytesToMaps</code> keys every row by its header, which is most of a CSV to JSON conversion already:</p>
+<div class="codeblock"><pre><code>import 'dart:convert';
+
+final json = jsonEncode(const CsvCodec().decodeBytesToMaps(bytes));</code></pre></div>
+<p>The full set is <code>decodeBytes</code>, <code>decodeBytesWithHeaders</code>, <code>decodeBytesToTable</code> and <code>decodeBytesToMaps</code>, mirroring the string decoders.</p>
+<h2 id="writing-bytes-back-out">Writing bytes back out<a class="anchor" href="#writing-bytes-back-out" aria-label="Link to this section">#</a></h2>
+<p><code>encodeToBytes</code> returns UTF-8 bytes ready for <code>File.writeAsBytes</code>, a web download, or an HTTP body:</p>
+<div class="codeblock"><pre><code>final bytes = const CsvCodec().encodeToBytes(rows);
+
+// For a file Excel will open as UTF-8, add the byte order mark:
+const forExcel = CsvCodec(CsvConfig(addBom: true));
+final excelBytes = forExcel.encodeToBytes(rows);</code></pre></div>
+<p>If the file is not UTF-8, see <a href="/csv-encoding">encodings</a>.</p>
+<nav class="next" aria-label="Related guides"><a href="/csv-encoding">Encodings</a><a href="/read-csv-file">Read a file</a><a href="/csv-to-json">CSV to JSON</a></nav>
+      <footer class="pagefoot">
+        csv_plus is open source under the MIT licence.
+        <a href="https://pub.dev/packages/csv_plus">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/csv_plus">Source</a> &middot;
+        <a href="https://pub.dev/documentation/csv_plus/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#why-bytes-and-not-a-path">Why bytes and not a path</a></li><li><a href="#from-a-file-picker">From a file picker</a></li><li><a href="#from-a-bundled-asset">From a bundled asset</a></li><li><a href="#from-an-http-response">From an HTTP response</a></li><li><a href="#straight-to-maps-or-json">Straight to maps or JSON</a></li><li><a href="#writing-bytes-back-out">Writing bytes back out</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

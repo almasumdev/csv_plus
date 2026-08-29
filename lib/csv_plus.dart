@@ -48,6 +48,7 @@
 library;
 
 // Core
+export 'src/core/charset.dart';
 export 'src/core/csv_config.dart';
 export 'src/core/csv_exception.dart';
 export 'src/core/quote_mode.dart';

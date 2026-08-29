@@ -19,8 +19,14 @@ void main() {
   // Touch the streaming decoder so it is not tree-shaken out of the smoke.
   final streamed = const CsvDecoder().convert(csv);
 
+  // Bytes in and out, including a single byte charset, must build for web too.
+  final bytes = codec.encodeToBytes(rows);
+  final fromBytes = codec.decodeBytes(bytes);
+  final latin1Rows = codec.decodeBytes(bytes, charset: CsvCharset.latin1);
+
   print(
     '${rows.length} rows, ${table.rowCount} table rows, '
-    '${streamed.length} streamed, avg age ${table.avg('age')}',
+    '${streamed.length} streamed, ${fromBytes.length} from ${bytes.length} '
+    'bytes, ${latin1Rows.length} latin1, avg age ${table.avg('age')}',
   );
 }

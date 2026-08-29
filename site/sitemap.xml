@@ -3,6 +3,8 @@
   <url><loc>https://csv-plus.web.app/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>
   <url><loc>https://csv-plus.web.app/parse-csv</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://csv-plus.web.app/read-csv-file</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/csv-bytes</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://csv-plus.web.app/csv-encoding</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://csv-plus.web.app/write-csv</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://csv-plus.web.app/csv-headers</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://csv-plus.web.app/type-inference</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
