@@ -49,6 +49,14 @@
           "destination": "/read-csv-file.html"
         },
         {
+          "source": "/csv-bytes",
+          "destination": "/csv-bytes.html"
+        },
+        {
+          "source": "/csv-encoding",
+          "destination": "/csv-encoding.html"
+        },
+        {
           "source": "/write-csv",
           "destination": "/write-csv.html"
         },
