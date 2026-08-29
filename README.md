@@ -214,6 +214,7 @@ them, or copy any snippet from [Getting started](#getting-started) below.
 - [Source code on GitHub](https://github.com/almasumdev/csv_plus)
 - [Changelog](https://github.com/almasumdev/csv_plus/blob/main/CHANGELOG.md)
 - [Issue tracker](https://github.com/almasumdev/csv_plus/issues)
+- [Contributing](https://github.com/almasumdev/csv_plus/blob/main/CONTRIBUTING.md)
 
 Working with spreadsheets rather than plain CSV?
 [excel_plus](https://pub.dev/packages/excel_plus) reads and writes `.xlsx`
