@@ -116,6 +116,7 @@ Flutter platform.
 - Lenient (`decodeFlexible`) mode: trims whitespace and recovers unmatched quotes
 - Header-aware rows (`CsvRow`) with `row['name']` and `row[0]` access, or `decodeToMaps` for a list of header-keyed maps
 - Comment-line skipping (`comment: '#'`) and row windowing (`skipRows` / `maxRows`) to drop preambles and read a slice
+- `skipInitialSpace` drops the padding an exporter leaves after a delimiter, so `a, "b, c"` reads as two fields rather than three
 - Opt-in ISO-8601 date and date-time inference (`parseDates`), range-checked so `2024-13-45` stays text instead of rolling over
 - Delimiter auto-detection, BOM handling, and the Excel `sep=` hint
 - Decode straight from bytes (`decodeBytes`) for a file picker, a bundled asset, or an HTTP body, including on web

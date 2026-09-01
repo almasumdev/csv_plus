@@ -116,6 +116,7 @@ class _StateMachine {
   late final int? _maxRows = config.maxRows;
 
   _State _state = _State.fieldStart;
+  bool _atLineStart = true;
   final _buf = StringBuffer();
   var _currentRow = <dynamic>[];
   var _isQuoted = false;
@@ -172,9 +173,17 @@ class _StateMachine {
               continue;
             }
           }
-          if (_hasComment && _currentRow.isEmpty && ch == _commentCode) {
+          if (_hasComment &&
+              _currentRow.isEmpty &&
+              _atLineStart &&
+              ch == _commentCode) {
             // Comment marker at the very start of a row: drop the line.
             _state = _State.comment;
+            i++;
+          } else if (config.skipInitialSpace && ch == 32) {
+            // Unquoted leading space (32): drop it and stay in fieldStart, which
+            // also means a run spanning a chunk boundary just keeps consuming.
+            _atLineStart = false;
             i++;
           } else if (ch == _quoteCode) {
             _isQuoted = true;
@@ -457,6 +466,7 @@ class _StateMachine {
     final row = _currentRow;
     _currentRow = <dynamic>[];
     _rowIndex++;
+    _atLineStart = true;
 
     // A row of a single empty field is an empty line per RFC 4180.
     if (_skipEmpty && row.length == 1) {

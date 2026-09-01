@@ -99,6 +99,7 @@ class FastDecoder {
     final quoteCode = config.quoteCharacter.codeUnitAt(0);
     final escapeCode = config.escapeCharacter.codeUnitAt(0);
     final skipEmpty = config.skipEmptyLines;
+    final skipSpace = config.skipInitialSpace;
     final dynamicTyping = config.dynamicTyping;
     final parseDates = config.parseDates;
     final transform = config.decoderTransform;
@@ -168,6 +169,12 @@ class FastDecoder {
           break;
         }
 
+        if (skipSpace) {
+          while (cursor < len && bytes[cursor] == _space) {
+            cursor++;
+          }
+          if (cursor >= len) continue;
+        }
         final ch = bytes[cursor];
 
         if (ch <= _cr && (ch == _cr || ch == _lf)) {
@@ -533,6 +540,7 @@ class FastDecoder {
     final quoteCode = config.quoteCharacter.codeUnitAt(0);
     final escapeCode = config.escapeCharacter.codeUnitAt(0);
     final skipEmpty = config.skipEmptyLines;
+    final skipSpace = config.skipInitialSpace;
     final hasHeader = config.hasHeader;
     final strict = config.strict;
     final hasComment = config.comment != null && config.comment!.isNotEmpty;
@@ -590,6 +598,12 @@ class FastDecoder {
           break;
         }
 
+        if (skipSpace) {
+          while (cursor < len && bytes[cursor] == _space) {
+            cursor++;
+          }
+          if (cursor >= len) continue;
+        }
         final ch = bytes[cursor];
 
         if (ch <= _cr && (ch == _cr || ch == _lf)) {

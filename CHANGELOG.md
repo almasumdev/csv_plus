@@ -1,3 +1,22 @@
+## 1.5.0
+
+Read the padding some exporters leave after a delimiter.
+
+### New
+
+- `CsvConfig(skipInitialSpace: true)` drops spaces sitting between a delimiter
+  and the start of a field. RFC 4180 treats a space before a quote as content,
+  so `a, "b, c"` is three fields by the letter of the spec; spreadsheets and
+  several exporters read it as two. Off by default, so the strict reading stays
+  the default. Only unquoted leading spaces are dropped: a space inside a quoted
+  field, after the first character, or at the end of a field is still content.
+- A comment marker reached only after skipped spaces is content rather than a
+  comment, matching what the batch path already did with an indented marker.
+
+All three decode paths honour it identically, and the new suite checks that on
+every case by splitting the streaming input at every possible offset, so a run
+of spaces crossing a chunk boundary is exercised rather than assumed.
+
 ## 1.4.0
 
 Read the files other tools actually hand you: bytes in, bytes out, and the

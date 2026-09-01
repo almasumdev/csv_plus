@@ -96,6 +96,19 @@ class CsvConfig {
   final dynamic Function(dynamic value, int index, String? header)?
   encoderTransform;
 
+  /// Drop spaces sitting between a delimiter and the start of a field.
+  ///
+  /// RFC 4180 treats a space before a quote as ordinary content, so
+  /// `a, "b, c"` is three fields by the letter of the spec. Spreadsheets and
+  /// several exporters instead read it as two, with the quoted field starting
+  /// after the space. Off by default so the strict reading stays the default;
+  /// turn it on for files written by a tool that pads after the delimiter.
+  ///
+  /// Only spaces in an unquoted position at the start of a field are dropped.
+  /// A space inside a quoted field, or after the first non-space character, is
+  /// always content. Decode-only.
+  final bool skipInitialSpace;
+
   /// Create a CSV configuration.
   ///
   /// All parameters have sensible defaults (RFC 4180 compatible).
@@ -117,6 +130,7 @@ class CsvConfig {
     this.comment,
     this.skipRows = 0,
     this.maxRows,
+    this.skipInitialSpace = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -135,6 +149,7 @@ class CsvConfig {
     this.comment,
     this.skipRows = 0,
     this.maxRows,
+    this.skipInitialSpace = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = ';',
@@ -157,6 +172,7 @@ class CsvConfig {
     this.comment,
     this.skipRows = 0,
     this.maxRows,
+    this.skipInitialSpace = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '\t',
@@ -178,6 +194,7 @@ class CsvConfig {
     this.comment,
     this.skipRows = 0,
     this.maxRows,
+    this.skipInitialSpace = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '|',
@@ -205,6 +222,7 @@ class CsvConfig {
     String? comment,
     int? skipRows,
     int? maxRows,
+    bool? skipInitialSpace,
     dynamic Function(dynamic value, int index, String? header)?
     decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -226,6 +244,7 @@ class CsvConfig {
       comment: comment ?? this.comment,
       skipRows: skipRows ?? this.skipRows,
       maxRows: maxRows ?? this.maxRows,
+      skipInitialSpace: skipInitialSpace ?? this.skipInitialSpace,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );
