@@ -13,6 +13,11 @@ import '../table/csv_table.dart';
 /// Uses `dart:io` for file access. Isolated here to keep core library
 /// platform-independent.
 class CsvFile {
+  /// This class is a namespace for the static helpers below; there is nothing
+  /// to hold in an instance. Declared so the implicit constructor is not an
+  /// undocumented part of the public API.
+  const CsvFile();
+
   // --- Read ---
 
   /// Read entire file into [CsvTable] (async).
