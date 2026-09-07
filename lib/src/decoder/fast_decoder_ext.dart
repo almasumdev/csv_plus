@@ -182,7 +182,11 @@ extension FastDecoderFlexible on FastDecoder {
           final value = input.substring(start, cursor).trim();
           if (dynamicTyping) {
             currentRow.add(
-              FastDecoder.inferType(value, parseDates: parseDates),
+              FastDecoder.inferType(
+                value,
+                parseDates: parseDates,
+                nullValues: config.nullValues,
+              ),
             );
           } else {
             currentRow.add(value);

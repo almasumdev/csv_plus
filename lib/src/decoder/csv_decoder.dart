@@ -445,7 +445,11 @@ class _StateMachine {
     if (_isQuoted) {
       value = raw;
     } else if (_dynamicTyping && !isHeaderRow) {
-      value = FastDecoder.inferType(raw, parseDates: _parseDates);
+      value = FastDecoder.inferType(
+        raw,
+        parseDates: _parseDates,
+        nullValues: config.nullValues,
+      );
     } else {
       value = raw;
     }

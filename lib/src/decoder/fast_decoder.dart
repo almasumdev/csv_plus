@@ -100,6 +100,14 @@ class FastDecoder {
     final escapeCode = config.escapeCharacter.codeUnitAt(0);
     final skipEmpty = config.skipEmptyLines;
     final skipSpace = config.skipInitialSpace;
+    final nullValues = config.nullValues;
+    final hasNullValues = nullValues.isNotEmpty;
+    // nullValues applies only to a value that reads as text, so the
+    // numeric and boolean fast paths above never reach it. That is what
+    // keeps this in step with the streaming decoder.
+    dynamic nullify(dynamic v) =>
+        (hasNullValues && v is String && nullValues.contains(v)) ? null : v;
+
     final dynamicTyping = config.dynamicTyping;
     final parseDates = config.parseDates;
     final transform = config.decoderTransform;
@@ -351,7 +359,7 @@ class FastDecoder {
               }
               cursor++;
             }
-            dynamic cell = input.substring(start, cursor);
+            dynamic cell = nullify(input.substring(start, cursor));
             if (hasTransform) {
               final hdr = (headers != null && cellIdx < headers.length)
                   ? headers[cellIdx]
@@ -430,6 +438,7 @@ class FastDecoder {
             }
             cell = input.substring(start, cursor);
           }
+          cell = nullify(cell);
           if (parseDates && cell is String) {
             cell = tryParseIsoDateTime(cell) ?? cell;
           }
@@ -457,7 +466,7 @@ class FastDecoder {
             }
             cursor++;
           }
-          dynamic cell = input.substring(start, cursor);
+          dynamic cell = nullify(input.substring(start, cursor));
           if (hasTransform) {
             final hdr = (headers != null && cellIdx < headers.length)
                 ? headers[cellIdx]
@@ -809,8 +818,15 @@ class FastDecoder {
   ///   that would parse to a non-finite double (`1e999`).
   /// - With [parseDates], a value still reading as text is parsed as an
   ///   ISO-8601 date or date-time when it matches [tryParseIsoDateTime].
-  static dynamic inferType(String value, {bool parseDates = false}) {
+  static dynamic inferType(
+    String value, {
+    bool parseDates = false,
+    Set<String> nullValues = const <String>{},
+  }) {
     final inferred = _inferScalar(value);
+    // Only a value that read as text is eligible, so a numeric-looking entry
+    // in nullValues has no effect. The batch loop applies the same rule.
+    if (inferred is String && nullValues.contains(inferred)) return null;
     if (parseDates && inferred is String) {
       return tryParseIsoDateTime(inferred) ?? inferred;
     }

@@ -1,3 +1,28 @@
+## 1.6.0
+
+Turn the spellings an exporter uses for a missing value into real nulls.
+
+### New
+
+- `CsvConfig(nullValues: {'NULL', 'NA', 'N/A'})` decodes those fields as `null`
+  instead of as their own text. Exports frequently write a missing value that
+  way rather than leaving the field empty, and it otherwise arrives as a string
+  that every downstream check has to special-case.
+
+The rule is narrow on purpose, because it is what keeps the decoders in step:
+
+- Matching is exact and case-sensitive, so list every spelling the file uses.
+- A quoted field is never matched, so a genuine `"NULL"` in the data survives.
+- Only a value that would otherwise read as **text** is eligible. An entry that
+  type inference turns into a number or a bool (`0`, `false`) never reaches the
+  check, so putting one in the set has no effect.
+- `decodeStrings` is unaffected, since its return type cannot hold a null.
+
+This was deferred twice over the one-parsing-semantics invariant. The suite now
+checks batch and streaming agree on every case, with the streaming input split
+at every possible offset, so a value straddling a chunk boundary is exercised
+rather than assumed.
+
 ## 1.5.0
 
 Read the padding some exporters leave after a delimiter.

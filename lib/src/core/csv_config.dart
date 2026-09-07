@@ -109,6 +109,22 @@ class CsvConfig {
   /// always content. Decode-only.
   final bool skipInitialSpace;
 
+  /// Unquoted field values that decode to `null` instead of their own text.
+  ///
+  /// Exports commonly write a missing value as `NULL`, `NA` or `N/A` rather
+  /// than leaving the field empty, and it otherwise arrives as that string.
+  /// Matching is exact and case-sensitive, so list every spelling the file
+  /// uses.
+  ///
+  /// Only applies to a field that would otherwise read as **text**. A quoted
+  /// field is never matched, so a genuine `"NULL"` in the data survives; and an
+  /// entry that type inference would turn into a number or a bool (`0`,
+  /// `false`) never reaches the check, so putting one here has no effect. That
+  /// restriction is what keeps the batch and streaming decoders in agreement.
+  ///
+  /// Empty by default, which costs nothing on the hot path. Decode-only.
+  final Set<String> nullValues;
+
   /// Create a CSV configuration.
   ///
   /// All parameters have sensible defaults (RFC 4180 compatible).
@@ -131,6 +147,7 @@ class CsvConfig {
     this.skipRows = 0,
     this.maxRows,
     this.skipInitialSpace = false,
+    this.nullValues = const <String>{},
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -150,6 +167,7 @@ class CsvConfig {
     this.skipRows = 0,
     this.maxRows,
     this.skipInitialSpace = false,
+    this.nullValues = const <String>{},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = ';',
@@ -173,6 +191,7 @@ class CsvConfig {
     this.skipRows = 0,
     this.maxRows,
     this.skipInitialSpace = false,
+    this.nullValues = const <String>{},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '\t',
@@ -195,6 +214,7 @@ class CsvConfig {
     this.skipRows = 0,
     this.maxRows,
     this.skipInitialSpace = false,
+    this.nullValues = const <String>{},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '|',
@@ -223,6 +243,7 @@ class CsvConfig {
     int? skipRows,
     int? maxRows,
     bool? skipInitialSpace,
+    Set<String>? nullValues,
     dynamic Function(dynamic value, int index, String? header)?
     decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -245,6 +266,7 @@ class CsvConfig {
       skipRows: skipRows ?? this.skipRows,
       maxRows: maxRows ?? this.maxRows,
       skipInitialSpace: skipInitialSpace ?? this.skipInitialSpace,
+      nullValues: nullValues ?? this.nullValues,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );
