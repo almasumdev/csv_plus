@@ -125,6 +125,20 @@ class CsvConfig {
   /// Empty by default, which costs nothing on the hot path. Decode-only.
   final Set<String> nullValues;
 
+  /// Text written for a `null` value when encoding.
+  ///
+  /// A null encodes as an empty field by default, which is what most readers
+  /// expect. Some destinations want a sentinel instead: Postgres `COPY` reads
+  /// `\N`, and plenty of exports use `NULL`. Set this to write that instead.
+  ///
+  /// The placeholder goes through the normal cell writer, so it is quoted when
+  /// it needs to be and a reader that knows nothing about it still sees a
+  /// well-formed field. Pair it with [nullValues] to read the same file back
+  /// with its nulls intact.
+  ///
+  /// `null` (the default) keeps the empty-field behaviour. Encode-only.
+  final String? nullPlaceholder;
+
   /// Create a CSV configuration.
   ///
   /// All parameters have sensible defaults (RFC 4180 compatible).
@@ -148,6 +162,7 @@ class CsvConfig {
     this.maxRows,
     this.skipInitialSpace = false,
     this.nullValues = const <String>{},
+    this.nullPlaceholder,
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -168,6 +183,7 @@ class CsvConfig {
     this.maxRows,
     this.skipInitialSpace = false,
     this.nullValues = const <String>{},
+    this.nullPlaceholder,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = ';',
@@ -192,6 +208,7 @@ class CsvConfig {
     this.maxRows,
     this.skipInitialSpace = false,
     this.nullValues = const <String>{},
+    this.nullPlaceholder,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '\t',
@@ -215,6 +232,7 @@ class CsvConfig {
     this.maxRows,
     this.skipInitialSpace = false,
     this.nullValues = const <String>{},
+    this.nullPlaceholder,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '|',
@@ -244,6 +262,7 @@ class CsvConfig {
     int? maxRows,
     bool? skipInitialSpace,
     Set<String>? nullValues,
+    String? nullPlaceholder,
     dynamic Function(dynamic value, int index, String? header)?
     decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -267,6 +286,7 @@ class CsvConfig {
       maxRows: maxRows ?? this.maxRows,
       skipInitialSpace: skipInitialSpace ?? this.skipInitialSpace,
       nullValues: nullValues ?? this.nullValues,
+      nullPlaceholder: nullPlaceholder ?? this.nullPlaceholder,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );

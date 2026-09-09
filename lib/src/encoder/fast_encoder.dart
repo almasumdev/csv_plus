@@ -51,7 +51,15 @@ class FastEncoder {
               : null;
           cell = transform(cell, c, hdr);
         }
-        writeCell(buf, cell, delim, quote, escape, mode);
+        writeCell(
+          buf,
+          cell,
+          delim,
+          quote,
+          escape,
+          mode,
+          nullPlaceholder: config.nullPlaceholder,
+        );
       }
       if (r < data.length - 1) buf.write(lineDelim);
     }
@@ -148,7 +156,15 @@ class FastEncoder {
       buf.write(quote);
 
       buf.write(delim);
-      writeCell(buf, entry.value, delim, quote, escape, mode);
+      writeCell(
+        buf,
+        entry.value,
+        delim,
+        quote,
+        escape,
+        mode,
+        nullPlaceholder: config.nullPlaceholder,
+      );
     }
 
     return buf.toString();
@@ -164,9 +180,26 @@ class FastEncoder {
     String delim,
     String quote,
     String escape,
-    QuoteMode mode,
-  ) {
+    QuoteMode mode, {
+    String? nullPlaceholder,
+  }) {
     if (cell == null) {
+      if (nullPlaceholder != null) {
+        // Written with `necessary` quoting whatever the configured mode is.
+        // The placeholder is a sentinel, not data: under `always` or `strings`
+        // it would come out quoted, and a quoted field is never matched by
+        // `nullValues`, so the file could not be read back with its nulls
+        // intact. It still gets quotes when the text itself needs them.
+        writeCell(
+          buf,
+          nullPlaceholder,
+          delim,
+          quote,
+          escape,
+          QuoteMode.necessary,
+        );
+        return;
+      }
       // Null reads back as null (typed decode); only QuoteMode.always
       // materializes it as a quoted empty string.
       if (mode == QuoteMode.always) {

@@ -118,6 +118,7 @@ Flutter platform.
 - Comment-line skipping (`comment: '#'`) and row windowing (`skipRows` / `maxRows`) to drop preambles and read a slice
 - `skipInitialSpace` drops the padding an exporter leaves after a delimiter, so `a, "b, c"` reads as two fields rather than three
 - `nullValues` turns the spellings an exporter uses for a missing value (`NULL`, `NA`, `N/A`) into real nulls, without touching a quoted `"NULL"`
+- `nullPlaceholder` writes a sentinel for a null on the way out (`NULL`, or Postgres `\N`), so a file can round-trip its nulls
 - Opt-in ISO-8601 date and date-time inference (`parseDates`), range-checked so `2024-13-45` stays text instead of rolling over
 - Delimiter auto-detection, BOM handling, and the Excel `sep=` hint
 - Decode straight from bytes (`decodeBytes`) for a file picker, a bundled asset, or an HTTP body, including on web

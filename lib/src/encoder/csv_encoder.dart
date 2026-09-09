@@ -79,6 +79,7 @@ class CsvEncoder extends StreamTransformerBase<List<dynamic>, String> {
     required String quoteCharacter,
     required String escapeCharacter,
     required QuoteMode quoteMode,
+    String? nullPlaceholder,
   }) {
     final buf = StringBuffer();
     FastEncoder.writeCell(
@@ -88,6 +89,7 @@ class CsvEncoder extends StreamTransformerBase<List<dynamic>, String> {
       quoteCharacter,
       escapeCharacter,
       quoteMode,
+      nullPlaceholder: nullPlaceholder,
     );
     return buf.toString();
   }
@@ -139,6 +141,7 @@ class _RowFormatter {
         config.quoteCharacter,
         config.escapeCharacter,
         config.quoteMode,
+        nullPlaceholder: config.nullPlaceholder,
       );
     }
 

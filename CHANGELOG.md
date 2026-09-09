@@ -1,3 +1,22 @@
+## 1.7.0
+
+Write a sentinel for a null, so a file can round-trip its nulls.
+
+### New
+
+- `CsvConfig(nullPlaceholder: 'NULL')` writes that text for a `null` instead of
+  an empty field. Some destinations want a sentinel: Postgres `COPY` reads
+  `\N`, and plenty of exports use `NULL`. Paired with `nullValues` the same
+  file reads back with its nulls intact, which the previous release could
+  decode but not produce.
+- The placeholder is written with `necessary` quoting whatever `quoteMode` is
+  set to. It is a sentinel rather than data, and under `always` or `strings` it
+  would come out quoted, which `nullValues` deliberately never matches, so the
+  round trip would have quietly failed. It still gets quotes when the text
+  itself needs them.
+- An empty string is untouched by all of this. It still encodes as a quoted
+  empty field, so `''` and `null` stay distinguishable on the way back.
+
 ## 1.6.0
 
 Turn the spellings an exporter uses for a missing value into real nulls.
