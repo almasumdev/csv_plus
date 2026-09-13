@@ -1,4 +1,5 @@
 import '../core/csv_config.dart';
+import '../core/date_order.dart';
 import '../core/csv_exception.dart';
 
 // ASCII constants for hot-loop byte comparison
@@ -16,6 +17,7 @@ const _plus = 43; // +
 const _space = 32; //
 const _upperT = 84; // T
 const _colon = 58; // :
+const _slash = 47; // /
 const _bom = 0xFEFF;
 
 // 'true' / 'false' byte sequences
@@ -110,6 +112,7 @@ class FastDecoder {
 
     final dynamicTyping = config.dynamicTyping;
     final parseDates = config.parseDates;
+    final dateOrder = config.dateOrder;
     final transform = config.decoderTransform;
     final hasHeader = config.hasHeader;
     final strict = config.strict;
@@ -440,7 +443,7 @@ class FastDecoder {
           }
           cell = nullify(cell);
           if (parseDates && cell is String) {
-            cell = tryParseIsoDateTime(cell) ?? cell;
+            cell = tryParseDate(cell, dateOrder) ?? cell;
           }
           if (hasTransform) {
             final hdr = (headers != null && cellIdx < headers.length)
@@ -821,6 +824,7 @@ class FastDecoder {
   static dynamic inferType(
     String value, {
     bool parseDates = false,
+    CsvDateOrder dateOrder = CsvDateOrder.iso,
     Set<String> nullValues = const <String>{},
   }) {
     final inferred = _inferScalar(value);
@@ -828,7 +832,7 @@ class FastDecoder {
     // in nullValues has no effect. The batch loop applies the same rule.
     if (inferred is String && nullValues.contains(inferred)) return null;
     if (parseDates && inferred is String) {
-      return tryParseIsoDateTime(inferred) ?? inferred;
+      return tryParseDate(inferred, dateOrder) ?? inferred;
     }
     return inferred;
   }
@@ -879,6 +883,97 @@ class FastDecoder {
       }
     }
     return DateTime.tryParse(value);
+  }
+
+  /// Parses [value] as a date, honouring [order] for the ambiguous numeric
+  /// forms and always accepting ISO-8601.
+  ///
+  /// This is the one place dates are resolved, so the batch and streaming
+  /// decoders cannot disagree about what a field means.
+  static DateTime? tryParseDate(String value, CsvDateOrder order) {
+    final iso = tryParseIsoDateTime(value);
+    if (iso != null) return iso;
+    if (order == CsvDateOrder.iso) return null;
+    return _tryParseOrderedDate(
+      value,
+      dayFirst: order == CsvDateOrder.dayFirst,
+    );
+  }
+
+  /// Parses `d/m/y` or `m/d/y` with `/`, `-` or `.` as the separator, and an
+  /// optional `HH:mm` or `HH:mm:ss` time after a space.
+  ///
+  /// Day and month may be one or two digits. A two-digit year follows the
+  /// spreadsheet convention: 00 to 68 is 2000s, 69 to 99 is 1900s. Every field
+  /// is range-checked, so an impossible date stays text rather than rolling
+  /// over into the wrong one.
+  static DateTime? _tryParseOrderedDate(
+    String value, {
+    required bool dayFirst,
+  }) {
+    if (value.length < 6 || value.length > 25) return null;
+
+    // Split the date from an optional time part.
+    var datePart = value;
+    var timePart = '';
+    final space = value.indexOf(' ');
+    if (space >= 0) {
+      datePart = value.substring(0, space);
+      timePart = value.substring(space + 1);
+      if (timePart.isEmpty) return null;
+    }
+
+    // One separator character, used consistently across both positions.
+    var sep = 0;
+    for (final c in const [_slash, _minus, _dot]) {
+      if (datePart.indexOf(String.fromCharCode(c)) > 0) {
+        sep = c;
+        break;
+      }
+    }
+    if (sep == 0) return null;
+    final fields = datePart.split(String.fromCharCode(sep));
+    if (fields.length != 3) return null;
+
+    final first = _allDigits(fields[0], 1, 2);
+    final second = _allDigits(fields[1], 1, 2);
+    final year = _allDigits(fields[2], 2, 4);
+    if (first < 0 || second < 0 || year < 0) return null;
+    if (fields[2].length == 3) return null;
+
+    final day = dayFirst ? first : second;
+    final month = dayFirst ? second : first;
+    final fullYear = fields[2].length == 2
+        ? (year <= 68 ? 2000 + year : 1900 + year)
+        : year;
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > _daysInMonth(fullYear, month)) return null;
+
+    var hour = 0, minute = 0, second2 = 0;
+    if (timePart.isNotEmpty) {
+      final t = timePart.split(':');
+      if (t.length < 2 || t.length > 3) return null;
+      hour = _allDigits(t[0], 1, 2);
+      minute = _allDigits(t[1], 2, 2);
+      second2 = t.length == 3 ? _allDigits(t[2], 2, 2) : 0;
+      if (hour < 0 || hour > 23) return null;
+      if (minute < 0 || minute > 59) return null;
+      if (second2 < 0 || second2 > 59) return null;
+    }
+    return DateTime(fullYear, month, day, hour, minute, second2);
+  }
+
+  /// Reads [text] as a decimal number when its length is between [minLen] and
+  /// [maxLen] and every character is a digit, or `-1` otherwise.
+  static int _allDigits(String text, int minLen, int maxLen) {
+    if (text.length < minLen || text.length > maxLen) return -1;
+    var n = 0;
+    for (var i = 0; i < text.length; i++) {
+      final c = text.codeUnitAt(i);
+      if (c < _zero || c > _nine) return -1;
+      n = n * 10 + (c - _zero);
+    }
+    return n;
   }
 
   /// Reads [start] (inclusive) to [end] (exclusive) as a decimal number, or

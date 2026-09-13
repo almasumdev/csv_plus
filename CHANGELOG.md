@@ -1,3 +1,37 @@
+## 1.8.0
+
+Numeric dates like `03/04/2024` can now be read, once you say which order they
+use. That closes the one limitation the README listed.
+
+### New
+
+- **`CsvConfig.dateOrder`**, taking a `CsvDateOrder`. `iso`, the default,
+  keeps today's behaviour and leaves an ambiguous value as text. `dayFirst`
+  reads `03/04/2024` as 3 April, `monthFirst` as 4 March.
+- `/`, `-` and `.` all separate, day and month may be one or two digits, and a
+  trailing `HH:mm` or `HH:mm:ss` is kept. A two-digit year follows the
+  spreadsheet convention: up to 68 is this century, 69 and above the last one.
+
+### Notes
+
+The order is something you tell csv_plus, never something it works out. A CSV
+carries no locale, so a file of `03/04/2024` values is genuinely ambiguous and
+sniffing it would be wrong for half of all files. The default stays `iso`, so
+nothing changes for anyone who does not set it.
+
+Range checking is unchanged and still applies to the new forms: under
+`monthFirst` a value like `25/12/2024` has no 25th month, so it stays text
+rather than rolling over into another year, and 29 February is accepted only in
+a leap year.
+
+All three decode paths, the batch decoder, `decodeStrings` and the streaming
+`CsvDecoder`, resolve dates through one shared function, and the suite checks
+every case through all of them with the stream split at every offset, so they
+cannot drift apart.
+
+Named months (`3 April 2024`) are still out of scope; a `decoderTransform`
+handles those.
+
 ## 1.7.0
 
 Write a sentinel for a null, so a file can round-trip its nulls.

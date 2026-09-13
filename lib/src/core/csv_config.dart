@@ -1,3 +1,4 @@
+import 'date_order.dart';
 import 'quote_mode.dart';
 
 /// Immutable configuration for CSV encoding/decoding.
@@ -139,6 +140,20 @@ class CsvConfig {
   /// `null` (the default) keeps the empty-field behaviour. Encode-only.
   final String? nullPlaceholder;
 
+  /// How to read a numeric date whose field order is ambiguous.
+  ///
+  /// A CSV carries no locale, so `03/04/2024` is the third of April in most of
+  /// the world and the fourth of March in the United States. Guessing would be
+  /// wrong half the time, so the default [CsvDateOrder.iso] leaves such a value
+  /// as text. Set [CsvDateOrder.dayFirst] or [CsvDateOrder.monthFirst] to say
+  /// which your file uses.
+  ///
+  /// Only applies when [parseDates] is on. ISO-8601 is recognised whichever
+  /// order is selected. Separators `/`, `-` and `.` are accepted, a two-digit
+  /// year reads as 2000s up to 68 and 1900s from 69, and a trailing `HH:mm` or
+  /// `HH:mm:ss` is kept.
+  final CsvDateOrder dateOrder;
+
   /// Create a CSV configuration.
   ///
   /// All parameters have sensible defaults (RFC 4180 compatible).
@@ -163,6 +178,7 @@ class CsvConfig {
     this.skipInitialSpace = false,
     this.nullValues = const <String>{},
     this.nullPlaceholder,
+    this.dateOrder = CsvDateOrder.iso,
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -184,6 +200,7 @@ class CsvConfig {
     this.skipInitialSpace = false,
     this.nullValues = const <String>{},
     this.nullPlaceholder,
+    this.dateOrder = CsvDateOrder.iso,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = ';',
@@ -209,6 +226,7 @@ class CsvConfig {
     this.skipInitialSpace = false,
     this.nullValues = const <String>{},
     this.nullPlaceholder,
+    this.dateOrder = CsvDateOrder.iso,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '\t',
@@ -233,6 +251,7 @@ class CsvConfig {
     this.skipInitialSpace = false,
     this.nullValues = const <String>{},
     this.nullPlaceholder,
+    this.dateOrder = CsvDateOrder.iso,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '|',
@@ -263,6 +282,7 @@ class CsvConfig {
     bool? skipInitialSpace,
     Set<String>? nullValues,
     String? nullPlaceholder,
+    CsvDateOrder? dateOrder,
     dynamic Function(dynamic value, int index, String? header)?
     decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -287,6 +307,7 @@ class CsvConfig {
       skipInitialSpace: skipInitialSpace ?? this.skipInitialSpace,
       nullValues: nullValues ?? this.nullValues,
       nullPlaceholder: nullPlaceholder ?? this.nullPlaceholder,
+      dateOrder: dateOrder ?? this.dateOrder,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );

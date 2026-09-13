@@ -1,3 +1,4 @@
+import '../core/date_order.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -104,6 +105,7 @@ class _StateMachine {
   late final bool _singleDelim = _delimCodes.length == 1;
   late final bool _dynamicTyping = config.dynamicTyping;
   late final bool _parseDates = config.parseDates;
+  late final CsvDateOrder _dateOrder = config.dateOrder;
   late final bool _skipEmpty = config.skipEmptyLines;
   late final bool _hasHeader = config.hasHeader;
   late final bool _strict = config.strict;
@@ -448,6 +450,7 @@ class _StateMachine {
       value = FastDecoder.inferType(
         raw,
         parseDates: _parseDates,
+        dateOrder: _dateOrder,
         nullValues: config.nullValues,
       );
     } else {

@@ -1,0 +1,200 @@
+import 'dart:convert';
+
+import 'package:csv_plus/csv_plus.dart';
+import 'package:test/test.dart';
+
+/// Decodes [input] through every typed path and asserts they agree.
+///
+/// Date resolution has to mean the same thing in the batch decoder and the
+/// streaming one, so every case is checked against both, with the stream split
+/// at every possible offset.
+List<List<dynamic>> decodeAllPaths(String input, CsvConfig config) {
+  final batch = CsvCodec(config).decode(input);
+  expect(
+    CsvDecoder(config).convert(input),
+    batch,
+    reason: 'streaming disagreed with batch',
+  );
+  for (var at = 1; at < input.length; at++) {
+    final rows = <List<dynamic>>[];
+    final sink = CsvDecoder(config).startChunkedConversion(
+      ChunkedConversionSink<List<dynamic>>.withCallback(rows.addAll),
+    );
+    sink.add(input.substring(0, at));
+    sink.add(input.substring(at));
+    sink.close();
+    expect(rows, batch, reason: 'chunk split at $at disagreed');
+  }
+  return batch;
+}
+
+/// The single decoded value of a one-cell document.
+dynamic only(String cell, CsvConfig config) =>
+    decodeAllPaths(cell, config)[0][0];
+
+void main() {
+  const iso = CsvConfig(autoDetect: false, parseDates: true);
+  const dayFirst = CsvConfig(
+    autoDetect: false,
+    parseDates: true,
+    dateOrder: CsvDateOrder.dayFirst,
+  );
+  const monthFirst = CsvConfig(
+    autoDetect: false,
+    parseDates: true,
+    dateOrder: CsvDateOrder.monthFirst,
+  );
+
+  group('Ambiguous Date Order', () {
+    test('the default leaves an ambiguous date as text', () {
+      // Reading it either way would be a guess, so it stays a string.
+      expect(only('03/04/2024', iso), '03/04/2024');
+    });
+
+    test('day first reads the day before the month', () {
+      expect(only('03/04/2024', dayFirst), DateTime(2024, 4, 3));
+    });
+
+    test('month first reads the month before the day', () {
+      expect(only('03/04/2024', monthFirst), DateTime(2024, 3, 4));
+    });
+
+    test('the same text means different days under the two orders', () {
+      // The whole point of the option: one document, two readings.
+      expect(only('05/06/2024', dayFirst), DateTime(2024, 6, 5));
+      expect(only('05/06/2024', monthFirst), DateTime(2024, 5, 6));
+    });
+
+    test('a day past twelve is unambiguous but still needs the order', () {
+      expect(only('25/12/2024', dayFirst), DateTime(2024, 12, 25));
+      // Month 25 does not exist, so month-first leaves it as text rather than
+      // quietly rolling it over into another year.
+      expect(only('25/12/2024', monthFirst), '25/12/2024');
+    });
+  });
+
+  group('Accepted Forms', () {
+    test('a single digit day or month is accepted', () {
+      expect(only('3/4/2024', dayFirst), DateTime(2024, 4, 3));
+      expect(only('3/12/2024', dayFirst), DateTime(2024, 12, 3));
+    });
+
+    test('slash, dash and dot all separate', () {
+      expect(only('03/04/2024', dayFirst), DateTime(2024, 4, 3));
+      expect(only('03-04-2024', dayFirst), DateTime(2024, 4, 3));
+      expect(only('03.04.2024', dayFirst), DateTime(2024, 4, 3));
+    });
+
+    test('a two-digit year follows the spreadsheet convention', () {
+      // Up to 68 is this century, from 69 is the last one.
+      expect(only('03/04/24', dayFirst), DateTime(2024, 4, 3));
+      expect(only('03/04/68', dayFirst), DateTime(2068, 4, 3));
+      expect(only('03/04/69', dayFirst), DateTime(1969, 4, 3));
+      expect(only('03/04/99', dayFirst), DateTime(1999, 4, 3));
+    });
+
+    test('a trailing time is kept', () {
+      expect(only('03/04/2024 14:30', dayFirst), DateTime(2024, 4, 3, 14, 30));
+      expect(
+        only('03/04/2024 14:30:45', dayFirst),
+        DateTime(2024, 4, 3, 14, 30, 45),
+      );
+    });
+
+    test('ISO still parses whichever order is set', () {
+      expect(only('2024-01-31', dayFirst), DateTime(2024, 1, 31));
+      expect(only('2024-01-31', monthFirst), DateTime(2024, 1, 31));
+      expect(
+        only('2024-01-31T09:30:00', dayFirst),
+        DateTime(2024, 1, 31, 9, 30),
+      );
+    });
+
+    test('a leap day is accepted only in a leap year', () {
+      expect(only('29/02/2024', dayFirst), DateTime(2024, 2, 29));
+      expect(only('29/02/2023', dayFirst), '29/02/2023');
+    });
+  });
+
+  group('Rejected Forms', () {
+    test('an impossible date stays text instead of rolling over', () {
+      // DateTime would happily turn month 13 into the next January.
+      expect(only('45/13/2024', dayFirst), '45/13/2024');
+      expect(only('32/01/2024', dayFirst), '32/01/2024');
+      expect(only('00/01/2024', dayFirst), '00/01/2024');
+      expect(only('01/00/2024', dayFirst), '01/00/2024');
+    });
+
+    test('an impossible time stays text', () {
+      expect(only('03/04/2024 25:00', dayFirst), '03/04/2024 25:00');
+      expect(only('03/04/2024 12:61', dayFirst), '03/04/2024 12:61');
+    });
+
+    test('mixed separators are not a date', () {
+      expect(only('03/04-2024', dayFirst), '03/04-2024');
+    });
+
+    test('a three-digit year is not a date', () {
+      expect(only('03/04/204', dayFirst), '03/04/204');
+    });
+
+    test('an unpunctuated run stays text', () {
+      // Far more likely an identifier than a date, so it is left alone.
+      expect(only('03042024', dayFirst), '03042024');
+    });
+
+    test('something that is not a date at all is untouched', () {
+      expect(only('hello', dayFirst), 'hello');
+      expect(only('1/2', dayFirst), '1/2');
+      expect(only('a/b/c', dayFirst), 'a/b/c');
+    });
+
+    test('a quoted field is never inferred', () {
+      expect(only('"03/04/2024"', dayFirst), '03/04/2024');
+    });
+
+    test('it does nothing unless parseDates is on', () {
+      const off = CsvConfig(
+        autoDetect: false,
+        dateOrder: CsvDateOrder.dayFirst,
+      );
+      expect(only('03/04/2024', off), '03/04/2024');
+    });
+  });
+
+  group('Whole Documents', () {
+    test('a table of ambiguous dates decodes consistently', () {
+      const text = 'when,what\n03/04/2024,ship\n25/12/2024,rest';
+      expect(decodeAllPaths(text, dayFirst), [
+        ['when', 'what'],
+        [DateTime(2024, 4, 3), 'ship'],
+        [DateTime(2024, 12, 25), 'rest'],
+      ]);
+    });
+
+    test('dates and other types coexist in one row', () {
+      const text = '03/04/2024,7,1.5,true,plain';
+      expect(decodeAllPaths(text, dayFirst), [
+        [DateTime(2024, 4, 3), 7, 1.5, true, 'plain'],
+      ]);
+    });
+
+    test('copyWith carries the order', () {
+      expect(
+        const CsvConfig().copyWith(dateOrder: CsvDateOrder.dayFirst).dateOrder,
+        CsvDateOrder.dayFirst,
+      );
+      // Omitting it keeps whatever was set.
+      expect(
+        const CsvConfig(
+          dateOrder: CsvDateOrder.monthFirst,
+        ).copyWith().dateOrder,
+        CsvDateOrder.monthFirst,
+      );
+    });
+
+    test('the default is ISO only', () {
+      expect(const CsvConfig().dateOrder, CsvDateOrder.iso);
+    });
+  });
+}

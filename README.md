@@ -119,7 +119,7 @@ Flutter platform.
 - `skipInitialSpace` drops the padding an exporter leaves after a delimiter, so `a, "b, c"` reads as two fields rather than three
 - `nullValues` turns the spellings an exporter uses for a missing value (`NULL`, `NA`, `N/A`) into real nulls, without touching a quoted `"NULL"`
 - `nullPlaceholder` writes a sentinel for a null on the way out (`NULL`, or Postgres `\N`), so a file can round-trip its nulls
-- Opt-in ISO-8601 date and date-time inference (`parseDates`), range-checked so `2024-13-45` stays text instead of rolling over
+- Opt-in date inference (`parseDates`), range-checked so `2024-13-45` stays text instead of rolling over, with `dateOrder` for numeric forms like `03/04/2024`
 - Delimiter auto-detection, BOM handling, and the Excel `sep=` hint
 - Decode straight from bytes (`decodeBytes`) for a file picker, a bundled asset, or an HTTP body, including on web
 - Non UTF-8 files: `CsvCharset.latin1` and `CsvCharset.windows1252` for the encodings Excel on Windows writes
@@ -172,8 +172,8 @@ Flutter platform.
 
 ## Limitations
 
-- ❌ Locale date formats (`03/04/2024`): only ISO-8601 is inferred, and
-  only when you ask for it. Use a `decoderTransform` for the rest.
+- ❌ Month and day names (`3 April 2024`, `Apr 3 2024`): numeric dates are
+  covered by `dateOrder`, but named months are not. Use a `decoderTransform`.
 
 ## Roadmap
 
@@ -312,6 +312,29 @@ codec.decode('a,b,c,d\n03/04/2024,2024-13-45,20240131,"2024-01-31"');
 date stays text instead of becoming the wrong one. Quoted fields are never
 inferred, and a `DateTime` encodes back to a form that decodes to the same
 value, so a round trip is lossless.
+
+#### Numeric dates like `03/04/2024`
+
+A CSV carries no locale, so that value is 3 April in most of the world and
+4 March in the United States, and nothing in the file says which. csv_plus will
+not guess. Tell it the order your file uses and it will read them:
+
+```dart
+const au = CsvConfig(parseDates: true, dateOrder: CsvDateOrder.dayFirst);
+const us = CsvConfig(parseDates: true, dateOrder: CsvDateOrder.monthFirst);
+
+CsvCodec(au).decode('when
+03/04/2024');  // 3 April 2024
+CsvCodec(us).decode('when
+03/04/2024');  // 4 March 2024
+```
+
+`/`, `-` and `.` all separate, day and month may be one or two digits, and a
+trailing `HH:mm` or `HH:mm:ss` is kept. A two-digit year follows the
+spreadsheet convention: up to 68 is this century, 69 and above the last one.
+Range checking still applies, so under `monthFirst` a value like `25/12/2024`
+stays text rather than rolling over. ISO-8601 is recognised whichever order you
+set, and the default, `CsvDateOrder.iso`, leaves ambiguous values alone.
 
 ### Query and transform with CsvTable
 
