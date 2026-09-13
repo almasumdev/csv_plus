@@ -625,7 +625,7 @@ PAGES.append(dict(
     title="How to Parse Dates from a CSV File in Dart",
     desc="Turn ISO 8601 date and date-time columns into real DateTime values while decoding CSV in Dart, with range checks that keep an impossible date as text.",
     h1="Dates and times",
-    lede="Dates stay text until you ask for them, because <code>03/04/2024</code> means two different days depending on where the file came from.",
+    lede="Dates stay text until you ask for them, because <code>03/04/2024</code> means two different days depending on where the file came from. Turn inference on, and say which order your file uses.",
     body=INSTALL + """
 <h2>Turning it on</h2>
 """ + pre("""
@@ -664,8 +664,19 @@ FastDecoder.tryParseIsoDateTime('2024-13-45'); // null
 """) + """
 <p>csv_plus range-checks the year, month, day, hour, minute and second before parsing, and honours leap years. <code>2024-02-29</code> parses; <code>2023-02-29</code> does not.</p>
 
-<h2>Other date formats</h2>
-<p>For anything that is not ISO 8601, convert the column yourself with a <code>decoderTransform</code>. It runs on every data cell and receives the column header, so you can target one column.</p>
+<h2>Numeric dates like 03/04/2024</h2>
+<p>A CSV carries no locale, so that value is 3 April in most of the world and 4 March in the United States, and nothing in the file says which. csv_plus will not guess. Tell it the order your file uses with <code>dateOrder</code> and it reads them.</p>
+""" + pre("""
+const au = CsvConfig(parseDates: true, dateOrder: CsvDateOrder.dayFirst);
+const us = CsvConfig(parseDates: true, dateOrder: CsvDateOrder.monthFirst);
+
+CsvCodec(au).decode('when\\n03/04/2024');  // 3 April 2024
+CsvCodec(us).decode('when\\n03/04/2024');  // 4 March 2024
+""") + """
+<p>Slash, dash and dot all separate, day and month may be one or two digits, and a trailing <code>HH:mm</code> or <code>HH:mm:ss</code> is kept. A two-digit year follows the spreadsheet convention: up to 68 is this century, 69 and above the last one. Range checking still applies, so under <code>monthFirst</code> a value like <code>25/12/2024</code> has no 25th month and stays text. ISO 8601 is recognised whichever order you set, and the default <code>CsvDateOrder.iso</code> leaves ambiguous values alone.</p>
+
+<h2>Month names and other formats</h2>
+<p>For anything numeric ordering does not cover, such as <code>3 April 2024</code>, convert the column yourself with a <code>decoderTransform</code>. It runs on every data cell and receives the column header, so you can target one column.</p>
 """ + pre("""
 final codec = CsvCodec(CsvConfig(
   hasHeader: true,
@@ -687,7 +698,9 @@ final codec = CsvCodec(CsvConfig(
     faq=[("How do I parse a date column from a CSV file in Dart?",
           "Decode with CsvConfig(parseDates: true). Any field in ISO 8601 form, such as 2024-01-31 or 2024-01-31T09:30:00Z, comes back as a DateTime."),
          ("Why is my CSV date still a string?",
-          "Date inference is off by default, and only ISO 8601 values are converted. A format such as 03/04/2024 is ambiguous, so it stays text; convert it with a decoderTransform."),
+          "Date inference is off by default, so turn on parseDates. A numeric format such as 03/04/2024 is ambiguous and also needs dateOrder, set to CsvDateOrder.dayFirst or CsvDateOrder.monthFirst, because a CSV carries no locale to say which order it uses."),
+         ("How do I parse dd/mm/yyyy or mm/dd/yyyy dates from a CSV in Dart?",
+          "Set dateOrder alongside parseDates: CsvDateOrder.dayFirst reads 03/04/2024 as 3 April, CsvDateOrder.monthFirst reads it as 4 March. Slash, dash and dot separators and a trailing time are all handled."),
          ("Does csv_plus handle time zones in CSV dates?",
           "Yes. A value with a Z or a numeric offset such as +05:30 is normalised to UTC; a value with no offset is read as local time.")],
 ))
