@@ -172,8 +172,8 @@ Flutter platform.
 
 ## Limitations
 
-- ❌ Month and day names (`3 April 2024`, `Apr 3 2024`): numeric dates are
-  covered by `dateOrder`, but named months are not. Use a `decoderTransform`.
+- ❌ Month names in languages other than English (`3 avril 2024`). English
+  names are read once `dateOrder` is set; use a `decoderTransform` for others.
 
 ## Roadmap
 
@@ -335,6 +335,12 @@ spreadsheet convention: up to 68 is this century, 69 and above the last one.
 Range checking still applies, so under `monthFirst` a value like `25/12/2024`
 stays text rather than rolling over. ISO-8601 is recognised whichever order you
 set, and the default, `CsvDateOrder.iso`, leaves ambiguous values alone.
+
+Setting either order also reads dates that name their month in English:
+`3 April 2024`, `April 3, 2024`, `03-Apr-2024`, `1st Jan 24`, with an optional
+time after them. The name makes the order explicit, so these read the same
+under `dayFirst` and `monthFirst`, and an impossible day such as `31 April`
+stays text.
 
 ### Query and transform with CsvTable
 

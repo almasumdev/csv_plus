@@ -7,7 +7,9 @@
 /// say. Set [CsvConfig.dateOrder] alongside [CsvConfig.parseDates].
 ///
 /// ISO-8601 (`2024-01-31`) is never ambiguous and is always recognised,
-/// whichever order is selected.
+/// whichever order is selected. Choosing [dayFirst] or [monthFirst] also turns
+/// on dates that name their month in English (`3 April 2024`, `Apr 3, 2024`,
+/// `03-Apr-2024`); the name fixes the order, so those read the same either way.
 ///
 /// {@category Configuration}
 enum CsvDateOrder {

@@ -363,6 +363,11 @@ class FastDecoder {
               cursor++;
             }
             dynamic cell = nullify(input.substring(start, cursor));
+            // Dates may start with a letter (April 3 2024), so this branch
+            // needs the same step as the numeric one to match streaming.
+            if (rowTyping && parseDates && cell is String) {
+              cell = tryParseDate(cell, dateOrder) ?? cell;
+            }
             if (hasTransform) {
               final hdr = (headers != null && cellIdx < headers.length)
                   ? headers[cellIdx]
@@ -470,6 +475,9 @@ class FastDecoder {
             cursor++;
           }
           dynamic cell = nullify(input.substring(start, cursor));
+          if (rowTyping && parseDates && cell is String) {
+            cell = tryParseDate(cell, dateOrder) ?? cell;
+          }
           if (hasTransform) {
             final hdr = (headers != null && cellIdx < headers.length)
                 ? headers[cellIdx]
@@ -895,9 +903,99 @@ class FastDecoder {
     if (iso != null) return iso;
     if (order == CsvDateOrder.iso) return null;
     return _tryParseOrderedDate(
-      value,
-      dayFirst: order == CsvDateOrder.dayFirst,
-    );
+          value,
+          dayFirst: order == CsvDateOrder.dayFirst,
+        ) ??
+        _tryParseNamedMonthDate(value);
+  }
+
+  /// English month names and their common abbreviations, keyed lowercase.
+  static const Map<String, int> _monthNames = {
+    'jan': 1,
+    'january': 1,
+    'feb': 2,
+    'february': 2,
+    'mar': 3,
+    'march': 3,
+    'apr': 4,
+    'april': 4,
+    'may': 5,
+    'jun': 6,
+    'june': 6,
+    'jul': 7,
+    'july': 7,
+    'aug': 8,
+    'august': 8,
+    'sep': 9,
+    'sept': 9,
+    'september': 9,
+    'oct': 10,
+    'october': 10,
+    'nov': 11,
+    'november': 11,
+    'dec': 12,
+    'december': 12,
+  };
+
+  static final RegExp _dateTokenSplit = RegExp(r'[\s-]+');
+  static final RegExp _ordinalDay = RegExp(
+    r'^(\d{1,2})(st|nd|rd|th)?$',
+    caseSensitive: false,
+  );
+
+  /// Parses a date that names its month in English: `3 April 2024`,
+  /// `April 3, 2024`, `03-Apr-2024`, `3rd Apr 24`, each optionally followed by
+  /// `HH:mm` or `HH:mm:ss`.
+  ///
+  /// The month name makes the order explicit, so these are never ambiguous.
+  /// Every field is range-checked like the numeric forms.
+  static DateTime? _tryParseNamedMonthDate(String value) {
+    if (value.length < 8 || value.length > 40) return null;
+    final tokens = value
+        .replaceAll(',', ' ')
+        .split(_dateTokenSplit)
+        .where((t) => t.isNotEmpty)
+        .toList();
+
+    var hour = 0, minute = 0, second = 0;
+    if (tokens.length == 4 && tokens.last.contains(':')) {
+      final t = tokens.removeLast().split(':');
+      if (t.length < 2 || t.length > 3) return null;
+      hour = _allDigits(t[0], 1, 2);
+      minute = _allDigits(t[1], 2, 2);
+      second = t.length == 3 ? _allDigits(t[2], 2, 2) : 0;
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+      if (second < 0 || second > 59) return null;
+    }
+    if (tokens.length != 3) return null;
+
+    // Either the day or the month comes first; the name says which is which.
+    final int month;
+    final String dayText;
+    final nameSecond = _monthNames[tokens[1].toLowerCase()];
+    final nameFirst = _monthNames[tokens[0].toLowerCase()];
+    if (nameSecond != null) {
+      month = nameSecond;
+      dayText = tokens[0];
+    } else if (nameFirst != null) {
+      month = nameFirst;
+      dayText = tokens[1];
+    } else {
+      return null;
+    }
+
+    final ordinal = _ordinalDay.firstMatch(dayText);
+    if (ordinal == null) return null;
+    final day = int.parse(ordinal.group(1)!);
+
+    final yearText = tokens[2];
+    final year = _allDigits(yearText, 2, 4);
+    if (year < 0 || yearText.length == 3) return null;
+    final fullYear = yearText.length == 2
+        ? (year <= 68 ? 2000 + year : 1900 + year)
+        : year;
+    if (day < 1 || day > _daysInMonth(fullYear, month)) return null;
+    return DateTime(fullYear, month, day, hour, minute, second);
   }
 
   /// Parses `d/m/y` or `m/d/y` with `/`, `-` or `.` as the separator, and an

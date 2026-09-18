@@ -1,3 +1,30 @@
+## 1.9.0
+
+Dates that name their month, such as `3 April 2024`, are read too.
+
+### New
+
+- With `dateOrder` set to `dayFirst` or `monthFirst`, csv_plus now also reads
+  dates that name their month in English: `3 April 2024`, `April 3, 2024`,
+  `03-Apr-2024`, `1st Jan 24`, with full names, three-letter abbreviations and
+  `Sept`, in any case, and an optional `HH:mm` or `HH:mm:ss` after them.
+- The name makes the order explicit, so these read the same under either
+  order. Range checking applies as always: `31 April 2024` and `29 Feb 2023`
+  stay text.
+
+### Notes
+
+The default `CsvDateOrder.iso` is unchanged and still reads ISO-8601 only, so
+nobody who has not opted into non-ISO dates sees anything new.
+
+Month-first values start with a letter, and until now every date form started
+with a digit, so the batch decoder only looked for dates in its numeric branch.
+The streaming decoder already looked everywhere. Left alone, the two would have
+disagreed about `April 3 2024`; the suite's check of every path at every chunk
+split caught it before release, and both now resolve dates in the same places.
+
+Month names in other languages are still out of scope.
+
 ## 1.8.0
 
 Numeric dates like `03/04/2024` can now be read, once you say which order they

@@ -152,6 +152,9 @@ class CsvConfig {
   /// order is selected. Separators `/`, `-` and `.` are accepted, a two-digit
   /// year reads as 2000s up to 68 and 1900s from 69, and a trailing `HH:mm` or
   /// `HH:mm:ss` is kept.
+  ///
+  /// Either non-ISO order also reads dates that name their month in English,
+  /// such as `3 April 2024`, `April 3, 2024`, `03-Apr-2024` and `1st Jan 24`.
   final CsvDateOrder dateOrder;
 
   /// Create a CSV configuration.

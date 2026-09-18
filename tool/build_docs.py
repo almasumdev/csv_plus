@@ -675,8 +675,11 @@ CsvCodec(us).decode('when\\n03/04/2024');  // 4 March 2024
 """) + """
 <p>Slash, dash and dot all separate, day and month may be one or two digits, and a trailing <code>HH:mm</code> or <code>HH:mm:ss</code> is kept. A two-digit year follows the spreadsheet convention: up to 68 is this century, 69 and above the last one. Range checking still applies, so under <code>monthFirst</code> a value like <code>25/12/2024</code> has no 25th month and stays text. ISO 8601 is recognised whichever order you set, and the default <code>CsvDateOrder.iso</code> leaves ambiguous values alone.</p>
 
-<h2>Month names and other formats</h2>
-<p>For anything numeric ordering does not cover, such as <code>3 April 2024</code>, convert the column yourself with a <code>decoderTransform</code>. It runs on every data cell and receives the column header, so you can target one column.</p>
+<h2>Month names</h2>
+<p>Setting either order also reads dates that name their month in English: <code>3 April 2024</code>, <code>April 3, 2024</code>, <code>03-Apr-2024</code> and <code>1st Jan 24</code>, with an optional time after them. The name makes the order explicit, so these read the same under <code>dayFirst</code> and <code>monthFirst</code>, and an impossible day such as <code>31 April</code> stays text.</p>
+
+<h2>Other formats</h2>
+<p>For anything else, such as month names in another language, convert the column yourself with a <code>decoderTransform</code>. It runs on every data cell and receives the column header, so you can target one column.</p>
 """ + pre("""
 final codec = CsvCodec(CsvConfig(
   hasHeader: true,

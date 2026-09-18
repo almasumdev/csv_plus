@@ -162,6 +162,71 @@ void main() {
     });
   });
 
+  group('Named Months', () {
+    test('day before the month name', () {
+      expect(only('3 April 2024', dayFirst), DateTime(2024, 4, 3));
+      expect(only('03 Apr 2024', dayFirst), DateTime(2024, 4, 3));
+    });
+
+    test('month name before the day, with or without a comma', () {
+      expect(only('April 3 2024', dayFirst), DateTime(2024, 4, 3));
+      expect(only('"April 3, 2024"', dayFirst), 'April 3, 2024');
+      // Unquoted, the comma would split the field, so the comma form is
+      // checked on a tab-delimited document instead.
+      const tabs = CsvConfig(
+        autoDetect: false,
+        fieldDelimiter: '\t',
+        parseDates: true,
+        dateOrder: CsvDateOrder.dayFirst,
+      );
+      expect(only('April 3, 2024', tabs), DateTime(2024, 4, 3));
+    });
+
+    test('the name fixes the order whichever dateOrder is set', () {
+      // The month is named, so month-first and day-first agree.
+      expect(only('3 April 2024', monthFirst), DateTime(2024, 4, 3));
+      expect(only('April 3 2024', monthFirst), DateTime(2024, 4, 3));
+    });
+
+    test('the dashed spreadsheet form is read', () {
+      expect(only('03-Apr-2024', dayFirst), DateTime(2024, 4, 3));
+      expect(only('3-Apr-24', dayFirst), DateTime(2024, 4, 3));
+    });
+
+    test('an ordinal day is read', () {
+      expect(only('1st Jan 2024', dayFirst), DateTime(2024, 1, 1));
+      expect(only('22nd Feb 2024', dayFirst), DateTime(2024, 2, 22));
+      expect(only('Mar 3rd 2024', dayFirst), DateTime(2024, 3, 3));
+    });
+
+    test('names match in any case, and Sept is September', () {
+      expect(only('3 APRIL 2024', dayFirst), DateTime(2024, 4, 3));
+      expect(only('3 sept 2024', dayFirst), DateTime(2024, 9, 3));
+    });
+
+    test('a trailing time is kept', () {
+      expect(
+        only('3 April 2024 14:30', dayFirst),
+        DateTime(2024, 4, 3, 14, 30),
+      );
+    });
+
+    test('an impossible day stays text', () {
+      expect(only('31 April 2024', dayFirst), '31 April 2024');
+      expect(only('29 Feb 2023', dayFirst), '29 Feb 2023');
+    });
+
+    test('something that only looks like a date stays text', () {
+      expect(only('3 Apples 2024', dayFirst), '3 Apples 2024');
+      expect(only('May the fourth', dayFirst), 'May the fourth');
+    });
+
+    test('the ISO default leaves named months alone', () {
+      // Opting into dates beyond ISO is what dateOrder is for.
+      expect(only('3 April 2024', iso), '3 April 2024');
+    });
+  });
+
   group('Whole Documents', () {
     test('a table of ambiguous dates decodes consistently', () {
       const text = 'when,what\n03/04/2024,ship\n25/12/2024,rest';
