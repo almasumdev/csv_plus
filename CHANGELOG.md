@@ -1,3 +1,23 @@
+## 1.10.0
+
+Month names in any language, supplied by you.
+
+### New
+
+- **`CsvConfig.monthNames`**, a lowercase-keyed map of month spellings to month
+  numbers. English is built in; add French, German or anything else and those
+  dates read like the rest. Your names are consulted before the English ones,
+  so a spelling the two languages share can mean what your file intends.
+
+### Notes
+
+csv_plus still bundles no locale data, and this is why: the names are a map you
+own, so a file's language is something you state rather than something the
+library guesses from a list it happens to ship.
+
+It applies only when `dateOrder` is not `iso`, exactly like the English names,
+and range checking is unchanged: `31 avril 2024` stays text.
+
 ## 1.9.0
 
 Dates that name their month, such as `3 April 2024`, are read too.

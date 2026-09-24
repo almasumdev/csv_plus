@@ -157,6 +157,27 @@ class CsvConfig {
   /// such as `3 April 2024`, `April 3, 2024`, `03-Apr-2024` and `1st Jan 24`.
   final CsvDateOrder dateOrder;
 
+  /// Extra month names to recognise, keyed lowercase, for a language other
+  /// than English.
+  ///
+  /// English names are built in. Add your own to read dates in another
+  /// language, mapping each spelling to its month number:
+  ///
+  /// ```dart
+  /// const CsvConfig(
+  ///   parseDates: true,
+  ///   dateOrder: CsvDateOrder.dayFirst,
+  ///   monthNames: {'janvier': 1, 'janv': 1, 'fevrier': 2, 'février': 2},
+  /// )
+  /// ```
+  ///
+  /// Keys must already be lowercase, since the field is lowercased before the
+  /// lookup. These are consulted before the English names, so a spelling both
+  /// languages share can be given the meaning your file intends. Only applies
+  /// when [dateOrder] is not [CsvDateOrder.iso], the same as the English
+  /// names.
+  final Map<String, int> monthNames;
+
   /// Create a CSV configuration.
   ///
   /// All parameters have sensible defaults (RFC 4180 compatible).
@@ -182,6 +203,7 @@ class CsvConfig {
     this.nullValues = const <String>{},
     this.nullPlaceholder,
     this.dateOrder = CsvDateOrder.iso,
+    this.monthNames = const {},
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -204,6 +226,7 @@ class CsvConfig {
     this.nullValues = const <String>{},
     this.nullPlaceholder,
     this.dateOrder = CsvDateOrder.iso,
+    this.monthNames = const {},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = ';',
@@ -230,6 +253,7 @@ class CsvConfig {
     this.nullValues = const <String>{},
     this.nullPlaceholder,
     this.dateOrder = CsvDateOrder.iso,
+    this.monthNames = const {},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '\t',
@@ -255,6 +279,7 @@ class CsvConfig {
     this.nullValues = const <String>{},
     this.nullPlaceholder,
     this.dateOrder = CsvDateOrder.iso,
+    this.monthNames = const {},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '|',
@@ -286,6 +311,7 @@ class CsvConfig {
     Set<String>? nullValues,
     String? nullPlaceholder,
     CsvDateOrder? dateOrder,
+    Map<String, int>? monthNames,
     dynamic Function(dynamic value, int index, String? header)?
     decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -311,6 +337,7 @@ class CsvConfig {
       nullValues: nullValues ?? this.nullValues,
       nullPlaceholder: nullPlaceholder ?? this.nullPlaceholder,
       dateOrder: dateOrder ?? this.dateOrder,
+      monthNames: monthNames ?? this.monthNames,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );

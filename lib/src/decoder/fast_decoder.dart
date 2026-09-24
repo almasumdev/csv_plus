@@ -113,6 +113,7 @@ class FastDecoder {
     final dynamicTyping = config.dynamicTyping;
     final parseDates = config.parseDates;
     final dateOrder = config.dateOrder;
+    final monthNames = config.monthNames;
     final transform = config.decoderTransform;
     final hasHeader = config.hasHeader;
     final strict = config.strict;
@@ -366,7 +367,8 @@ class FastDecoder {
             // Dates may start with a letter (April 3 2024), so this branch
             // needs the same step as the numeric one to match streaming.
             if (rowTyping && parseDates && cell is String) {
-              cell = tryParseDate(cell, dateOrder) ?? cell;
+              cell =
+                  tryParseDate(cell, dateOrder, monthNames: monthNames) ?? cell;
             }
             if (hasTransform) {
               final hdr = (headers != null && cellIdx < headers.length)
@@ -448,7 +450,8 @@ class FastDecoder {
           }
           cell = nullify(cell);
           if (parseDates && cell is String) {
-            cell = tryParseDate(cell, dateOrder) ?? cell;
+            cell =
+                tryParseDate(cell, dateOrder, monthNames: monthNames) ?? cell;
           }
           if (hasTransform) {
             final hdr = (headers != null && cellIdx < headers.length)
@@ -476,7 +479,8 @@ class FastDecoder {
           }
           dynamic cell = nullify(input.substring(start, cursor));
           if (rowTyping && parseDates && cell is String) {
-            cell = tryParseDate(cell, dateOrder) ?? cell;
+            cell =
+                tryParseDate(cell, dateOrder, monthNames: monthNames) ?? cell;
           }
           if (hasTransform) {
             final hdr = (headers != null && cellIdx < headers.length)
@@ -833,6 +837,7 @@ class FastDecoder {
     String value, {
     bool parseDates = false,
     CsvDateOrder dateOrder = CsvDateOrder.iso,
+    Map<String, int> monthNames = const {},
     Set<String> nullValues = const <String>{},
   }) {
     final inferred = _inferScalar(value);
@@ -840,7 +845,8 @@ class FastDecoder {
     // in nullValues has no effect. The batch loop applies the same rule.
     if (inferred is String && nullValues.contains(inferred)) return null;
     if (parseDates && inferred is String) {
-      return tryParseDate(inferred, dateOrder) ?? inferred;
+      return tryParseDate(inferred, dateOrder, monthNames: monthNames) ??
+          inferred;
     }
     return inferred;
   }
@@ -898,7 +904,11 @@ class FastDecoder {
   ///
   /// This is the one place dates are resolved, so the batch and streaming
   /// decoders cannot disagree about what a field means.
-  static DateTime? tryParseDate(String value, CsvDateOrder order) {
+  static DateTime? tryParseDate(
+    String value,
+    CsvDateOrder order, {
+    Map<String, int> monthNames = const {},
+  }) {
     final iso = tryParseIsoDateTime(value);
     if (iso != null) return iso;
     if (order == CsvDateOrder.iso) return null;
@@ -906,7 +916,7 @@ class FastDecoder {
           value,
           dayFirst: order == CsvDateOrder.dayFirst,
         ) ??
-        _tryParseNamedMonthDate(value);
+        _tryParseNamedMonthDate(value, monthNames);
   }
 
   /// English month names and their common abbreviations, keyed lowercase.
@@ -949,7 +959,10 @@ class FastDecoder {
   ///
   /// The month name makes the order explicit, so these are never ambiguous.
   /// Every field is range-checked like the numeric forms.
-  static DateTime? _tryParseNamedMonthDate(String value) {
+  static DateTime? _tryParseNamedMonthDate(
+    String value,
+    Map<String, int> extraNames,
+  ) {
     if (value.length < 8 || value.length > 40) return null;
     final tokens = value
         .replaceAll(',', ' ')
@@ -972,8 +985,15 @@ class FastDecoder {
     // Either the day or the month comes first; the name says which is which.
     final int month;
     final String dayText;
-    final nameSecond = _monthNames[tokens[1].toLowerCase()];
-    final nameFirst = _monthNames[tokens[0].toLowerCase()];
+    // A caller's own names are consulted first, so a locale can override a
+    // spelling English also uses (French "mai" against English "may").
+    int? named(String token) {
+      final key = token.toLowerCase();
+      return extraNames[key] ?? _monthNames[key];
+    }
+
+    final nameSecond = named(tokens[1]);
+    final nameFirst = named(tokens[0]);
     if (nameSecond != null) {
       month = nameSecond;
       dayText = tokens[0];

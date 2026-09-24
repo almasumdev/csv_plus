@@ -678,8 +678,17 @@ CsvCodec(us).decode('when\\n03/04/2024');  // 4 March 2024
 <h2>Month names</h2>
 <p>Setting either order also reads dates that name their month in English: <code>3 April 2024</code>, <code>April 3, 2024</code>, <code>03-Apr-2024</code> and <code>1st Jan 24</code>, with an optional time after them. The name makes the order explicit, so these read the same under <code>dayFirst</code> and <code>monthFirst</code>, and an impossible day such as <code>31 April</code> stays text.</p>
 
+<h2>Month names in another language</h2>
+<p>English names are built in. For any other language, hand csv_plus the names with <code>monthNames</code> rather than writing a whole transform. Keys are lowercase, and yours are checked before the English ones, so a spelling both languages use can mean what your file intends.</p>
+""" + pre("""
+const fr = CsvConfig(
+  parseDates: true,
+  dateOrder: CsvDateOrder.dayFirst,
+  monthNames: {'janvier': 1, 'fevrier': 2, 'mars': 3, 'avril': 4},
+);
+""") + """
 <h2>Other formats</h2>
-<p>For anything else, such as month names in another language, convert the column yourself with a <code>decoderTransform</code>. It runs on every data cell and receives the column header, so you can target one column.</p>
+<p>For anything the built-in forms do not cover, convert the column yourself with a <code>decoderTransform</code>. It runs on every data cell and receives the column header, so you can target one column.</p>
 """ + pre("""
 final codec = CsvCodec(CsvConfig(
   hasHeader: true,
@@ -702,6 +711,8 @@ final codec = CsvCodec(CsvConfig(
           "Decode with CsvConfig(parseDates: true). Any field in ISO 8601 form, such as 2024-01-31 or 2024-01-31T09:30:00Z, comes back as a DateTime."),
          ("Why is my CSV date still a string?",
           "Date inference is off by default, so turn on parseDates. A numeric format such as 03/04/2024 is ambiguous and also needs dateOrder, set to CsvDateOrder.dayFirst or CsvDateOrder.monthFirst, because a CSV carries no locale to say which order it uses."),
+         ("Can csv_plus read dates in French, German or another language?",
+          "Yes. Pass the month names for that language in monthNames, keyed lowercase, alongside dateOrder. English names are built in, and yours are checked first."),
          ("How do I parse dd/mm/yyyy or mm/dd/yyyy dates from a CSV in Dart?",
           "Set dateOrder alongside parseDates: CsvDateOrder.dayFirst reads 03/04/2024 as 3 April, CsvDateOrder.monthFirst reads it as 4 March. Slash, dash and dot separators and a trailing time are all handled."),
          ("Does csv_plus handle time zones in CSV dates?",

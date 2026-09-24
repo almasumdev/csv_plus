@@ -172,8 +172,8 @@ Flutter platform.
 
 ## Limitations
 
-- ❌ Month names in languages other than English (`3 avril 2024`). English
-  names are read once `dateOrder` is set; use a `decoderTransform` for others.
+- ❌ Bundled locale data. English month names are built in and any other
+  language is a map you supply through `monthNames`.
 
 ## Roadmap
 
@@ -341,6 +341,23 @@ Setting either order also reads dates that name their month in English:
 time after them. The name makes the order explicit, so these read the same
 under `dayFirst` and `monthFirst`, and an impossible day such as `31 April`
 stays text.
+
+For another language, hand csv_plus the names rather than a whole transform:
+
+```dart
+const fr = CsvConfig(
+  parseDates: true,
+  dateOrder: CsvDateOrder.dayFirst,
+  monthNames: {'janvier': 1, 'fevrier': 2, 'mars': 3, 'avril': 4},
+);
+
+CsvCodec(fr).decode('quand
+3 avril 2024');  // 3 April 2024
+```
+
+Keys are lowercase, and yours are checked before the English ones, so a
+spelling both languages use can mean what your file intends. Range checking
+applies the same way.
 
 ### Query and transform with CsvTable
 

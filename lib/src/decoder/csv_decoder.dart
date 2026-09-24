@@ -106,6 +106,7 @@ class _StateMachine {
   late final bool _dynamicTyping = config.dynamicTyping;
   late final bool _parseDates = config.parseDates;
   late final CsvDateOrder _dateOrder = config.dateOrder;
+  late final Map<String, int> _monthNames = config.monthNames;
   late final bool _skipEmpty = config.skipEmptyLines;
   late final bool _hasHeader = config.hasHeader;
   late final bool _strict = config.strict;
@@ -451,6 +452,7 @@ class _StateMachine {
         raw,
         parseDates: _parseDates,
         dateOrder: _dateOrder,
+        monthNames: _monthNames,
         nullValues: config.nullValues,
       );
     } else {

@@ -227,6 +227,74 @@ void main() {
     });
   });
 
+  group('Month Names In Another Language', () {
+    const french = CsvConfig(
+      autoDetect: false,
+      parseDates: true,
+      dateOrder: CsvDateOrder.dayFirst,
+      monthNames: {
+        'janvier': 1,
+        'fevrier': 2,
+        'mars': 3,
+        'avril': 4,
+        'mai': 5,
+        'juin': 6,
+        'juillet': 7,
+        'aout': 8,
+        'septembre': 9,
+        'octobre': 10,
+        'novembre': 11,
+        'decembre': 12,
+      },
+    );
+
+    test('a supplied name is read', () {
+      expect(only('3 avril 2024', french), DateTime(2024, 4, 3));
+      expect(only('25 decembre 2024', french), DateTime(2024, 12, 25));
+    });
+
+    test('the English names still work alongside them', () {
+      expect(only('3 April 2024', french), DateTime(2024, 4, 3));
+    });
+
+    test('a supplied name wins over the English one it collides with', () {
+      // French mars is March; English would have no claim on it, but this
+      // shows the caller's table is consulted first.
+      const shifted = CsvConfig(
+        autoDetect: false,
+        parseDates: true,
+        dateOrder: CsvDateOrder.dayFirst,
+        monthNames: {'may': 3},
+      );
+      expect(only('3 may 2024', shifted), DateTime(2024, 3, 3));
+      expect(only('3 may 2024', dayFirst), DateTime(2024, 5, 3));
+    });
+
+    test('range checking still applies to a supplied name', () {
+      expect(only('31 avril 2024', french), '31 avril 2024');
+    });
+
+    test('a name that was not supplied stays text', () {
+      expect(only('3 aprile 2024', french), '3 aprile 2024');
+    });
+
+    test('it does nothing under the ISO default', () {
+      const isoFrench = CsvConfig(
+        autoDetect: false,
+        parseDates: true,
+        monthNames: {'avril': 4},
+      );
+      expect(only('3 avril 2024', isoFrench), '3 avril 2024');
+    });
+
+    test('copyWith carries the table', () {
+      expect(const CsvConfig().copyWith(monthNames: {'avril': 4}).monthNames, {
+        'avril': 4,
+      });
+      expect(const CsvConfig().monthNames, isEmpty);
+    });
+  });
+
   group('Whole Documents', () {
     test('a table of ambiguous dates decodes consistently', () {
       const text = 'when,what\n03/04/2024,ship\n25/12/2024,rest';
