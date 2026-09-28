@@ -114,6 +114,7 @@ class FastDecoder {
     final parseDates = config.parseDates;
     final dateOrder = config.dateOrder;
     final monthNames = config.monthNames;
+    final trimFields = config.trimFields;
     final transform = config.decoderTransform;
     final hasHeader = config.hasHeader;
     final strict = config.strict;
@@ -363,7 +364,17 @@ class FastDecoder {
               }
               cursor++;
             }
-            dynamic cell = nullify(input.substring(start, cursor));
+            var raw = input.substring(start, cursor);
+            if (trimFields) raw = raw.trim();
+            dynamic cell = trimFields && rowTyping
+                ? inferType(
+                    raw,
+                    parseDates: parseDates,
+                    dateOrder: dateOrder,
+                    monthNames: monthNames,
+                    nullValues: nullValues,
+                  )
+                : nullify(raw);
             // Dates may start with a letter (April 3 2024), so this branch
             // needs the same step as the numeric one to match streaming.
             if (rowTyping && parseDates && cell is String) {
@@ -418,7 +429,9 @@ class FastDecoder {
 
           dynamic cell;
           if (atBoundary && !zeroLed) {
-            final numStr = input.substring(start, cursor);
+            final numStr = trimFields
+                ? input.substring(start, cursor).trim()
+                : input.substring(start, cursor);
             if (isDouble) {
               // Non-finite results (1e999) would corrupt the value.
               final d = double.tryParse(numStr);
@@ -477,7 +490,17 @@ class FastDecoder {
             }
             cursor++;
           }
-          dynamic cell = nullify(input.substring(start, cursor));
+          var rawText = input.substring(start, cursor);
+          if (trimFields) rawText = rawText.trim();
+          dynamic cell = trimFields && rowTyping
+              ? inferType(
+                  rawText,
+                  parseDates: parseDates,
+                  dateOrder: dateOrder,
+                  monthNames: monthNames,
+                  nullValues: nullValues,
+                )
+              : nullify(rawText);
           if (rowTyping && parseDates && cell is String) {
             cell =
                 tryParseDate(cell, dateOrder, monthNames: monthNames) ?? cell;

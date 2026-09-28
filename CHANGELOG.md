@@ -1,3 +1,25 @@
+## 1.11.0
+
+Padding around values no longer turns numbers into text.
+
+### New
+
+- **`CsvConfig.trimFields`** trims whitespace from both ends of an unquoted
+  field before anything reads it, so ` 42 ` is the number 42 rather than the
+  string ` 42 `, and ` NULL ` matches a configured null value. Headers are
+  trimmed too.
+
+### Notes
+
+A quoted field is never trimmed, because the quotes already say where the value
+begins and ends. `skipInitialSpace` stays the narrower option, dropping spaces
+before a field starts, including before an opening quote.
+
+A field of nothing but spaces trims to empty, so it reads exactly as a
+genuinely empty field does. The suite asserts those two are the same rather
+than leaving it to chance, and checks every case through the batch decoder and
+the streaming one with the input split at every offset.
+
 ## 1.10.0
 
 Month names in any language, supplied by you.

@@ -107,6 +107,7 @@ class _StateMachine {
   late final bool _parseDates = config.parseDates;
   late final CsvDateOrder _dateOrder = config.dateOrder;
   late final Map<String, int> _monthNames = config.monthNames;
+  late final bool _trimFields = config.trimFields;
   late final bool _skipEmpty = config.skipEmptyLines;
   late final bool _hasHeader = config.hasHeader;
   late final bool _strict = config.strict;
@@ -440,8 +441,12 @@ class _StateMachine {
   }
 
   void _emitField() {
-    final raw = _buf.toString();
+    var raw = _buf.toString();
     _buf.clear();
+
+    // A quoted field says exactly where it begins and ends, so only an
+    // unquoted one is trimmed, and it is trimmed before anything reads it.
+    if (_trimFields && !_isQuoted) raw = raw.trim();
 
     final isHeaderRow = _hasHeader && _headers == null;
     dynamic value;

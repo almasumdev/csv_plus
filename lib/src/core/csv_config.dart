@@ -178,6 +178,18 @@ class CsvConfig {
   /// names.
   final Map<String, int> monthNames;
 
+  /// Trim whitespace from both ends of an unquoted field before typing it.
+  ///
+  /// Exports padded for a fixed-width look, or hand-edited files, leave stray
+  /// spaces around values. With this on, ` 42 ` reads as the number 42 and
+  /// ` yes ` as the string `yes`; the trimmed text is what type inference and
+  /// [nullValues] then see.
+  ///
+  /// A quoted field is never trimmed, since the quotes state exactly where the
+  /// value begins and ends. [skipInitialSpace] is the narrower option that only
+  /// drops spaces before a field starts, including before an opening quote.
+  final bool trimFields;
+
   /// Create a CSV configuration.
   ///
   /// All parameters have sensible defaults (RFC 4180 compatible).
@@ -204,6 +216,7 @@ class CsvConfig {
     this.nullPlaceholder,
     this.dateOrder = CsvDateOrder.iso,
     this.monthNames = const {},
+    this.trimFields = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -227,6 +240,7 @@ class CsvConfig {
     this.nullPlaceholder,
     this.dateOrder = CsvDateOrder.iso,
     this.monthNames = const {},
+    this.trimFields = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = ';',
@@ -254,6 +268,7 @@ class CsvConfig {
     this.nullPlaceholder,
     this.dateOrder = CsvDateOrder.iso,
     this.monthNames = const {},
+    this.trimFields = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '\t',
@@ -280,6 +295,7 @@ class CsvConfig {
     this.nullPlaceholder,
     this.dateOrder = CsvDateOrder.iso,
     this.monthNames = const {},
+    this.trimFields = false,
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '|',
@@ -312,6 +328,7 @@ class CsvConfig {
     String? nullPlaceholder,
     CsvDateOrder? dateOrder,
     Map<String, int>? monthNames,
+    bool? trimFields,
     dynamic Function(dynamic value, int index, String? header)?
     decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -338,6 +355,7 @@ class CsvConfig {
       nullPlaceholder: nullPlaceholder ?? this.nullPlaceholder,
       dateOrder: dateOrder ?? this.dateOrder,
       monthNames: monthNames ?? this.monthNames,
+      trimFields: trimFields ?? this.trimFields,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );
