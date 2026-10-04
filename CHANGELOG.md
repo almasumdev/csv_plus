@@ -1,3 +1,39 @@
+## 1.12.0
+
+The booleans an exporter actually writes now read as booleans.
+
+### New
+
+- **`CsvConfig.boolValues`** maps extra spellings onto `true` and `false`. Only
+  lowercase `true`/`false` were booleans, but Excel writes `TRUE` and `FALSE`,
+  databases export `t`/`f`, and survey tools use `Yes`/`No`, so all of those
+  arrived as strings:
+
+  ```dart
+  const CsvConfig(boolValues: {
+    'TRUE': true, 'FALSE': false,
+    'Yes': true, 'No': false,
+  });
+  ```
+
+  Matching is exact, so each spelling you accept is listed. It applies only to
+  a value that read as text, the same rule `nullValues` follows, so a numeric
+  entry such as `'1'` has no effect because `1` has already read as a number.
+  `nullValues` is checked first, so a value in both reads as `null`.
+
+### Fixed
+
+- **A header matching `nullValues` crashed the decode.** `decodeWithHeaders`
+  nulled the header out and then cast it to a string, throwing
+  `type 'Null' is not a subtype of type 'String'`. The header row is never
+  typed, so a header that happens to match now stays the text it was and
+  remains usable as a key, while the data cells under it still read as null.
+
+### Notes
+
+The batch decoder, `decodeStrings` and the streaming `CsvDecoder` agree on all
+of this, checked at every chunk-split offset as usual.
+
 ## 1.11.0
 
 Padding around values no longer turns numbers into text.

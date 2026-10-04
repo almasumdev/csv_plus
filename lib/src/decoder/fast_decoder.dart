@@ -104,11 +104,19 @@ class FastDecoder {
     final skipSpace = config.skipInitialSpace;
     final nullValues = config.nullValues;
     final hasNullValues = nullValues.isNotEmpty;
-    // nullValues applies only to a value that reads as text, so the
-    // numeric and boolean fast paths above never reach it. That is what
+    final boolValues = config.boolValues;
+    final hasBoolValues = boolValues.isNotEmpty;
+    // nullValues and boolValues apply only to a value that reads as text, so
+    // the numeric and boolean fast paths above never reach them. That is what
     // keeps this in step with the streaming decoder.
-    dynamic nullify(dynamic v) =>
-        (hasNullValues && v is String && nullValues.contains(v)) ? null : v;
+    dynamic nullify(dynamic v, bool rowTyping) {
+      // The header row is never typed, so a header that happens to match stays
+      // the text it was and remains usable as a key.
+      if (!rowTyping || v is! String) return v;
+      if (hasNullValues && nullValues.contains(v)) return null;
+      if (hasBoolValues) return boolValues[v] ?? v;
+      return v;
+    }
 
     final dynamicTyping = config.dynamicTyping;
     final parseDates = config.parseDates;
@@ -373,8 +381,9 @@ class FastDecoder {
                     dateOrder: dateOrder,
                     monthNames: monthNames,
                     nullValues: nullValues,
+                    boolValues: boolValues,
                   )
-                : nullify(raw);
+                : nullify(raw, rowTyping);
             // Dates may start with a letter (April 3 2024), so this branch
             // needs the same step as the numeric one to match streaming.
             if (rowTyping && parseDates && cell is String) {
@@ -461,7 +470,7 @@ class FastDecoder {
             }
             cell = input.substring(start, cursor);
           }
-          cell = nullify(cell);
+          cell = nullify(cell, rowTyping);
           if (parseDates && cell is String) {
             cell =
                 tryParseDate(cell, dateOrder, monthNames: monthNames) ?? cell;
@@ -499,8 +508,9 @@ class FastDecoder {
                   dateOrder: dateOrder,
                   monthNames: monthNames,
                   nullValues: nullValues,
+                  boolValues: boolValues,
                 )
-              : nullify(rawText);
+              : nullify(rawText, rowTyping);
           if (rowTyping && parseDates && cell is String) {
             cell =
                 tryParseDate(cell, dateOrder, monthNames: monthNames) ?? cell;
@@ -862,11 +872,16 @@ class FastDecoder {
     CsvDateOrder dateOrder = CsvDateOrder.iso,
     Map<String, int> monthNames = const {},
     Set<String> nullValues = const <String>{},
+    Map<String, bool> boolValues = const <String, bool>{},
   }) {
-    final inferred = _inferScalar(value);
+    var inferred = _inferScalar(value);
     // Only a value that read as text is eligible, so a numeric-looking entry
-    // in nullValues has no effect. The batch loop applies the same rule.
+    // in nullValues or boolValues has no effect. The batch loop applies the
+    // same rule.
     if (inferred is String && nullValues.contains(inferred)) return null;
+    if (inferred is String && boolValues.isNotEmpty) {
+      inferred = boolValues[inferred] ?? inferred;
+    }
     if (parseDates && inferred is String) {
       return tryParseDate(inferred, dateOrder, monthNames: monthNames) ??
           inferred;

@@ -131,5 +131,15 @@ void main() {
       expect(const CsvConfig().copyWith(nullValues: {'NA'}).nullValues, {'NA'});
       expect(const CsvConfig(nullValues: {'NA'}).copyWith().nullValues, {'NA'});
     });
+
+    test('a header that matches stays text and stays usable as a key', () {
+      // The header row is never typed, so nulling a header out would leave a
+      // key that nothing could look up.
+      final rows = const CsvCodec(
+        CsvConfig(autoDetect: false, hasHeader: true, nullValues: {'flag'}),
+      ).decodeWithHeaders('flag,other\nflag,2');
+      expect(rows.single['flag'], isNull, reason: 'the data cell is nulled');
+      expect(rows.single['other'], 2);
+    });
   });
 }

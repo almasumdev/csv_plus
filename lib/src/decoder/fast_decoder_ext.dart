@@ -186,6 +186,7 @@ extension FastDecoderFlexible on FastDecoder {
                 value,
                 parseDates: parseDates,
                 nullValues: config.nullValues,
+                boolValues: config.boolValues,
               ),
             );
           } else {

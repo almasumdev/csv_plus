@@ -459,6 +459,7 @@ class _StateMachine {
         dateOrder: _dateOrder,
         monthNames: _monthNames,
         nullValues: config.nullValues,
+        boolValues: config.boolValues,
       );
     } else {
       value = raw;

@@ -190,6 +190,29 @@ class CsvConfig {
   /// drops spaces before a field starts, including before an opening quote.
   final bool trimFields;
 
+  /// Extra spellings that read as `true` or `false`, keyed by the exact text.
+  ///
+  /// Only lowercase `true` and `false` are booleans by default. Excel writes
+  /// them as `TRUE` and `FALSE`, databases often export `t`/`f` or `1`/`0`,
+  /// and survey exports use `Yes`/`No`, all of which otherwise arrive as
+  /// strings:
+  ///
+  /// ```dart
+  /// const CsvConfig(boolValues: {
+  ///   'TRUE': true, 'FALSE': false,
+  ///   'Yes': true, 'No': false,
+  /// });
+  /// ```
+  ///
+  /// Matching is exact, so list each spelling you accept. Only a value that
+  /// read as text is eligible, which is the same rule [nullValues] follows: a
+  /// numeric entry such as `'1'` has no effect, because `1` has already read
+  /// as the number 1. [nullValues] is checked first, so a value in both reads
+  /// as `null`.
+  ///
+  /// Defaults to empty, which leaves boolean handling as it was.
+  final Map<String, bool> boolValues;
+
   /// Create a CSV configuration.
   ///
   /// All parameters have sensible defaults (RFC 4180 compatible).
@@ -217,6 +240,7 @@ class CsvConfig {
     this.dateOrder = CsvDateOrder.iso,
     this.monthNames = const {},
     this.trimFields = false,
+    this.boolValues = const <String, bool>{},
     this.decoderTransform,
     this.encoderTransform,
   }) : escapeCharacter = escapeCharacter ?? quoteCharacter;
@@ -241,6 +265,7 @@ class CsvConfig {
     this.dateOrder = CsvDateOrder.iso,
     this.monthNames = const {},
     this.trimFields = false,
+    this.boolValues = const <String, bool>{},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = ';',
@@ -269,6 +294,7 @@ class CsvConfig {
     this.dateOrder = CsvDateOrder.iso,
     this.monthNames = const {},
     this.trimFields = false,
+    this.boolValues = const <String, bool>{},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '\t',
@@ -296,6 +322,7 @@ class CsvConfig {
     this.dateOrder = CsvDateOrder.iso,
     this.monthNames = const {},
     this.trimFields = false,
+    this.boolValues = const <String, bool>{},
     this.decoderTransform,
     this.encoderTransform,
   }) : fieldDelimiter = '|',
@@ -329,6 +356,7 @@ class CsvConfig {
     CsvDateOrder? dateOrder,
     Map<String, int>? monthNames,
     bool? trimFields,
+    Map<String, bool>? boolValues,
     dynamic Function(dynamic value, int index, String? header)?
     decoderTransform,
     dynamic Function(dynamic value, int index, String? header)?
@@ -356,6 +384,7 @@ class CsvConfig {
       dateOrder: dateOrder ?? this.dateOrder,
       monthNames: monthNames ?? this.monthNames,
       trimFields: trimFields ?? this.trimFields,
+      boolValues: boolValues ?? this.boolValues,
       decoderTransform: decoderTransform ?? this.decoderTransform,
       encoderTransform: encoderTransform ?? this.encoderTransform,
     );
