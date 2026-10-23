@@ -4,6 +4,7 @@ import '../core/csv_exception.dart';
 import 'csv_column.dart';
 import 'csv_row.dart';
 import 'csv_schema.dart';
+import 'header_keys.dart';
 
 /// 2D CSV data structure with headers and data rows.
 ///
@@ -262,10 +263,12 @@ class CsvTable {
 
   /// Convert to list of maps.
   List<Map<String, dynamic>> toMaps() {
+    // Repeated header names get numbered keys, so a column is never dropped.
+    final keys = uniqueHeaderKeys(_headers);
     return _data.map((row) {
       final map = <String, dynamic>{};
-      for (var i = 0; i < _headers.length; i++) {
-        map[_headers[i]] = i < row.length ? row[i] : null;
+      for (var i = 0; i < keys.length; i++) {
+        map[keys[i]] = i < row.length ? row[i] : null;
       }
       return map;
     }).toList();
@@ -382,7 +385,7 @@ class CsvTable {
   /// Build header name-to-index map, or null if no headers.
   Map<String, int>? buildHeaderMap() {
     if (_headers.isEmpty) return null;
-    return {for (var i = 0; i < _headers.length; i++) _headers[i]: i};
+    return headerIndexMap(_headers);
   }
 
   /// Compare two dynamic values with a documented total order.

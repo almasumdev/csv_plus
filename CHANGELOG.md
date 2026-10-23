@@ -1,3 +1,20 @@
+## 1.12.1
+
+### Fixed
+
+- **A repeated header name lost a column.** In a file headed `a,a,b`, the
+  keyed views kept only the last `a`, so every value in the first column
+  vanished from `decodeToMaps`, `decodeWithHeaders`, `CsvRow.toMap` and
+  `CsvTable.toMaps`, and `headers` reported two columns instead of three, while
+  the values were still there by position. Repeats are now kept apart: the
+  first keeps its name and later ones get `a_2`, `a_3` and so on, skipping any
+  name a real column already uses.
+
+### Notes
+
+For a file with repeated headers, `row['a']` now returns the first `a` column
+rather than the last. A file without repeats reads exactly as before.
+
 ## 1.12.0
 
 The booleans an exporter actually writes now read as booleans.

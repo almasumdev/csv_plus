@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'codec_adapter.dart';
+import '../table/header_keys.dart';
 import '../core/charset.dart';
 import '../core/csv_config.dart';
 import '../decoder/csv_decoder.dart';
@@ -81,11 +82,9 @@ class CsvCodec {
     final (resolved, cfg) = _resolve(input);
     final decoded = _fastDecoder.decodeWithHeaders(resolved, cfg);
 
-    final headers = decoded.headers;
-    final headerMap = <String, int>{};
-    for (var i = 0; i < headers.length; i++) {
-      headerMap[headers[i]] = i;
-    }
+    // Repeated header names are kept apart so no column is lost from the
+    // keyed views.
+    final headerMap = headerIndexMap(decoded.headers);
 
     return decoded.rows.map((row) => CsvRow(row, headerMap)).toList();
   }
