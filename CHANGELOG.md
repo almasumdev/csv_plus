@@ -1,3 +1,14 @@
+## 1.13.0
+
+### New
+
+- **UTF-16 files read correctly.** Excel's "Unicode Text" export is UTF-16 with a
+  byte order mark and tabs between fields, and decoding one as UTF-8 gave garbage
+  with no error. `decodeBytes` and the other byte decoders now honour the mark
+  whichever charset is passed, since those two bytes say exactly how the file was
+  written. `CsvCharset.utf16le` and `CsvCharset.utf16be` cover a file that has no
+  mark.
+
 ## 1.12.1
 
 ### Fixed

@@ -124,7 +124,7 @@ Flutter platform.
 - Opt-in date inference (`parseDates`), range-checked so `2024-13-45` stays text instead of rolling over, with `dateOrder` for numeric forms like `03/04/2024`
 - Delimiter auto-detection, BOM handling, and the Excel `sep=` hint
 - Decode straight from bytes (`decodeBytes`) for a file picker, a bundled asset, or an HTTP body, including on web
-- Non UTF-8 files: `CsvCharset.latin1` and `CsvCharset.windows1252` for the encodings Excel on Windows writes
+- Non UTF-8 files: `CsvCharset.latin1` and `CsvCharset.windows1252` for the encodings Excel on Windows writes, and UTF-16 read automatically from its byte order mark, which covers Excel's "Unicode Text" export
 
 </details>
 
