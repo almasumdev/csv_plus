@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import '../core/csv_config.dart';
 import '../core/csv_exception.dart';
+import 'auto_detect.dart';
 import 'fast_decoder.dart';
 
 /// Streaming CSV decoder using a chunked state machine.
@@ -15,6 +16,14 @@ import 'fast_decoder.dart';
 /// Produces exactly the same rows as [FastDecoder.decode] for the same
 /// input and [CsvConfig]; the two are held together by a conformance
 /// test suite.
+///
+/// Streaming matches `CsvCodec.decode` too: when [CsvConfig.autoDetect] is on
+/// and the delimiter is the default `,`, the decoder holds back the first ten
+/// non-empty lines, detects the delimiter (or reads an Excel `sep=` line, which
+/// is dropped) and then streams the rest with constant memory. If those lines
+/// never complete, for example after a stray opening quote, it decides on what
+/// it has once 1,000,000 code units are buffered. Set `autoDetect: false` or an
+/// explicit delimiter to skip the hold-back.
 ///
 /// [bind] honors downstream backpressure: when the listener pauses, the
 /// upstream subscription is paused, so a slow consumer does not buffer
@@ -29,7 +38,7 @@ class CsvDecoder extends StreamTransformerBase<String, List<dynamic>> {
   /// Batch: decode complete CSV string to rows.
   List<List<dynamic>> convert(String input) {
     final rows = <List<dynamic>>[];
-    final machine = _StateMachine(config, rows.add);
+    final machine = _newParser(config, rows.add);
     machine.addChunk(input);
     machine.finish();
     return rows;
@@ -41,7 +50,7 @@ class CsvDecoder extends StreamTransformerBase<String, List<dynamic>> {
     late final StreamController<List<dynamic>> controller;
     controller = StreamController<List<dynamic>>(
       onListen: () {
-        final machine = _StateMachine(config, controller.add);
+        final machine = _newParser(config, controller.add);
         subscription = stream.listen(
           (chunk) {
             try {
@@ -53,6 +62,12 @@ class CsvDecoder extends StreamTransformerBase<String, List<dynamic>> {
             }
           },
           onError: (Object error, StackTrace stackTrace) {
+            // Rows read before the failure still come out ahead of the error.
+            try {
+              machine.flushHeld();
+            } catch (heldError, heldStackTrace) {
+              controller.addError(heldError, heldStackTrace);
+            }
             controller.addError(error, stackTrace);
             controller.close();
           },
@@ -94,8 +109,103 @@ enum _State {
   comment,
 }
 
+/// Something that turns CSV chunks into rows.
+abstract interface class _ChunkParser {
+  void addChunk(String chunk);
+
+  /// Parses anything held back, without ending the input.
+  void flushHeld();
+  void finish();
+}
+
+/// Builds the parser for [config]: the plain state machine, or one that first
+/// resolves the delimiter when the batch decoder would.
+_ChunkParser _newParser(CsvConfig config, void Function(List<dynamic>) emit) =>
+    needsAutoDetect(config)
+    ? _DetectingParser(config, emit)
+    : _StateMachine(config, emit);
+
+/// Holds back the start of the input until the delimiter can be decided the
+/// same way `CsvCodec.decode` decides it, then hands everything to a
+/// [_StateMachine].
+///
+/// The sample is the first [_sampleLines] non-empty lines, counted as
+/// `DelimiterDetector` counts them: a `"` toggles quoting, and a CR or LF
+/// outside quotes ends a line. A buffer that ends in a CR waits for one more
+/// code unit so a CRLF after a `sep=` line is never split. If the sample never
+/// completes, the decision is made once [_maxBuffered] code units are held.
+class _DetectingParser implements _ChunkParser {
+  static const _sampleLines = 10;
+  static const _maxBuffered = 1000000;
+
+  final CsvConfig _config;
+  final void Function(List<dynamic> row) _emit;
+  final _held = StringBuffer();
+  _StateMachine? _machine;
+
+  var _heldLength = 0;
+  var _lines = 0;
+  var _inQuotes = false;
+  var _lineHasContent = false;
+  var _endsWithCr = false;
+
+  _DetectingParser(this._config, this._emit);
+
+  @override
+  void addChunk(String chunk) {
+    final machine = _machine;
+    if (machine != null) {
+      machine.addChunk(chunk);
+      return;
+    }
+    if (chunk.isEmpty) return;
+    _held.write(chunk);
+    final codes = chunk.codeUnits;
+    final len = codes.length;
+    if (_lines < _sampleLines) {
+      for (var i = 0; i < len; i++) {
+        final ch = codes[i];
+        if (_heldLength + i == 0 && ch == 0xFEFF) continue;
+        if (ch == 34) {
+          _inQuotes = !_inQuotes;
+          _lineHasContent = true;
+        } else if (!_inQuotes && (ch == 10 || ch == 13)) {
+          if (_lineHasContent) _lines++;
+          _lineHasContent = false;
+          if (_lines >= _sampleLines) break;
+        } else {
+          _lineHasContent = true;
+        }
+      }
+    }
+    _heldLength += len;
+    _endsWithCr = codes[len - 1] == 13;
+
+    final sampleReady = _lines >= _sampleLines && !_endsWithCr;
+    if (sampleReady || _heldLength >= _maxBuffered) _resolve();
+  }
+
+  @override
+  void flushHeld() {
+    if (_machine == null) _resolve();
+  }
+
+  @override
+  void finish() {
+    flushHeld();
+    _machine!.finish();
+  }
+
+  void _resolve() {
+    final (text, config) = resolveAutoDetect(_held.toString(), _config);
+    final machine = _machine = _StateMachine(config, _emit);
+    _held.clear();
+    machine.addChunk(text);
+  }
+}
+
 /// Chunked CSV parsing state machine. Preserves state across chunk boundaries.
-class _StateMachine {
+class _StateMachine implements _ChunkParser {
   final CsvConfig config;
   final void Function(List<dynamic> row) _emit;
 
@@ -136,6 +246,7 @@ class _StateMachine {
 
   _StateMachine(this.config, this._emit);
 
+  @override
   void addChunk(String chunk) {
     final codes = chunk.codeUnits;
     final len = codes.length;
@@ -347,6 +458,10 @@ class _StateMachine {
     }
   }
 
+  @override
+  void flushHeld() {}
+
+  @override
   void finish() {
     // A comment line at end of input (no trailing newline) emits nothing.
     if (_state == _State.comment) return;
@@ -510,11 +625,11 @@ class _StateMachine {
 
 /// Chunked conversion sink for [CsvDecoder].
 class _CsvDecoderSink extends StringConversionSinkBase {
-  final _StateMachine _machine;
+  final _ChunkParser _machine;
   final Sink<List<dynamic>> _output;
 
   _CsvDecoderSink(CsvConfig config, this._output)
-    : _machine = _StateMachine(config, _output.add);
+    : _machine = _newParser(config, _output.add);
 
   @override
   void addSlice(String str, int start, int end, bool isLast) {

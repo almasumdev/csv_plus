@@ -250,5 +250,116 @@ void main() {
         ]);
       });
     });
+
+    group('Streaming Delimiter Detection', () {
+      const codec = CsvCodec();
+
+      Future<List<List<dynamic>>> streamed(
+        Iterable<String> chunks, [
+        CsvConfig config = const CsvConfig(),
+      ]) => CsvDecoder(config).bind(Stream.fromIterable(chunks)).toList();
+
+      // Streams [input] split at every offset, and one code unit at a time,
+      // and expects the batch result each time.
+      Future<void> expectMatchesBatch(String input) async {
+        final expected = codec.decode(input);
+        expect(decoder.convert(input), expected);
+        for (var i = 0; i <= input.length; i++) {
+          final rows = await streamed([
+            input.substring(0, i),
+            input.substring(i),
+          ]);
+          expect(rows, expected, reason: 'split at $i of ${jsonEncode(input)}');
+        }
+        final single = await streamed(input.split(''));
+        expect(single, expected, reason: 'one code unit per chunk');
+      }
+
+      test('detects a semicolon delimiter at every chunk split', () async {
+        const input = 'name;age\nAnn;30\nBob;25\n';
+        expect(codec.decode(input), [
+          ['name', 'age'],
+          ['Ann', 30],
+          ['Bob', 25],
+        ]);
+        await expectMatchesBatch(input);
+      });
+
+      test('drops a sep= hint line and applies its delimiter', () async {
+        for (final input in [
+          'sep=;\nname;age\nAnn;30\n',
+          'sep=;\r\nname;age\r\nAnn;30\r\n',
+          'sep=;\rname;age\rAnn;30\r',
+          '﻿sep=|\nname|age\nAnn|30',
+        ]) {
+          expect(
+            codec.decode(input).first.length,
+            2,
+            reason: jsonEncode(input),
+          );
+          await expectMatchesBatch(input);
+        }
+      });
+
+      test('detects a tab delimiter after a byte order mark', () async {
+        const input = '﻿name\tage\nAnn\t30\n';
+        expect(codec.decode(input), [
+          ['name', 'age'],
+          ['Ann', 30],
+        ]);
+        await expectMatchesBatch(input);
+      });
+
+      test('samples the same lines as the batch decoder', () async {
+        // The first ten lines favour ';'. Later lines are all ',' and must not
+        // change the decision.
+        final input = [
+          for (var i = 0; i < 10; i++) 'a$i;b$i',
+          for (var i = 0; i < 10; i++) 'c,$i,d,$i',
+        ].join('\n');
+        expect(codec.decode(input).first, ['a0', 'b0']);
+        await expectMatchesBatch(input);
+
+        // A quoted newline does not end a sampled line.
+        final quoted = [
+          '"a\nb";c',
+          for (var i = 0; i < 12; i++) 'x$i;y$i',
+        ].join('\n');
+        await expectMatchesBatch(quoted);
+      });
+
+      test('leaves an explicit delimiter untouched', () async {
+        const input = 'name;age\nAnn;30\n';
+        const noDetect = CsvConfig(autoDetect: false);
+        const pipe = CsvConfig(fieldDelimiter: '|');
+        for (final config in [noDetect, pipe]) {
+          final expected = CsvCodec(config).decode(input);
+          expect(expected, [
+            ['name;age'],
+            ['Ann;30'],
+          ]);
+          expect(CsvDecoder(config).convert(input), expected);
+          expect(await streamed(input.split(''), config), expected);
+        }
+      });
+
+      test('an empty stream gives no rows', () async {
+        expect(await streamed(const []), isEmpty);
+        expect(await streamed(['']), isEmpty);
+        expect(decoder.convert(''), isEmpty);
+      });
+
+      test('decides on what it has when the sample never completes', () async {
+        // A stray opening quote keeps the first line open for good.
+        final big = 'a;"b\n${'x;y\n' * 300000}';
+        final expected = codec.decode(big);
+        expect(await streamed([big]), expected);
+        final chunks = [
+          for (var i = 0; i < big.length; i += 50000)
+            big.substring(i, i + 50000 > big.length ? big.length : i + 50000),
+        ];
+        expect(await streamed(chunks), expected);
+      });
+    });
   });
 }

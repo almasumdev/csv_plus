@@ -12,6 +12,22 @@ void main() {
       ]);
     });
 
+    test('decodes a semicolon file the same way the codec does', () async {
+      for (final input in ['a;b\n1;2\n', 'sep=;\na;b\n1;2\n']) {
+        final expected = const CsvCodec().decode(input);
+        expect(expected, [
+          ['a', 'b'],
+          [1, 2],
+        ]);
+        final adapter = const CsvCodec().asCodec();
+        expect(adapter.decode(input), expected);
+        final streamed = await adapter.decoder
+            .bind(Stream.fromIterable(input.split('')))
+            .toList();
+        expect(streamed.expand((chunk) => chunk).toList(), expected);
+      }
+    });
+
     test('encode via adapter', () {
       final adapter = CsvCodecAdapter();
       final csv = adapter.encode([

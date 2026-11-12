@@ -1,3 +1,16 @@
+## 1.13.1
+
+### Fixed
+
+- **Streaming ignored delimiter detection.** `CsvFile.stream`, `CsvCodec.decoder`,
+  `CsvDecoder` and `asCodec()` read a semicolon or tab file as a single column and
+  passed an Excel `sep=;` line through as a row, while `decode` split it correctly.
+  Streaming now detects the delimiter and honours `sep=` the same way the batch
+  decoder does. It reads the first ten non-empty lines before the first row comes
+  out, then streams the rest as before. Pass `autoDetect: false` (or set a
+  delimiter) to keep the old behaviour, where the delimiter is used exactly as
+  given and nothing is held back.
+
 ## 1.13.0
 
 ### New

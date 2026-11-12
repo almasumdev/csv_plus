@@ -5,8 +5,8 @@ import 'codec_adapter.dart';
 import '../table/header_keys.dart';
 import '../core/charset.dart';
 import '../core/csv_config.dart';
+import '../decoder/auto_detect.dart';
 import '../decoder/csv_decoder.dart';
-import '../decoder/delimiter_detector.dart';
 import '../decoder/fast_decoder.dart';
 import '../decoder/fast_decoder_ext.dart';
 import '../encoder/csv_encoder.dart';
@@ -17,7 +17,6 @@ import '../table/csv_table.dart';
 
 const _fastDecoder = FastDecoder();
 const _fastEncoder = FastEncoder();
-const _detector = DelimiterDetector();
 
 /// Main facade for CSV encoding and decoding.
 ///
@@ -46,27 +45,9 @@ class CsvCodec {
   /// enabled and the input contains a recognisable delimiter or `sep=` hint.
   /// Returns (preprocessed input, resolved config).
   ///
-  /// Auto-detection is skipped when the user has explicitly set a non-default
-  /// field delimiter (anything other than `,`), since that signals intent.
-  (String, CsvConfig) _resolve(String input) {
-    if (!config.autoDetect || config.fieldDelimiter != ',') {
-      return (input, config);
-    }
-
-    final (bomStripped, _) = _detector.stripBom(input);
-    final (remaining, sepDelim) = _detector.checkSepHint(bomStripped);
-
-    if (sepDelim != null) {
-      // sep= hint found: strip that line and use the hinted delimiter
-      return (remaining, config.copyWith(fieldDelimiter: sepDelim));
-    }
-
-    final detected = _detector.detectDelimiter(bomStripped);
-    if (detected != config.fieldDelimiter) {
-      return (input, config.copyWith(fieldDelimiter: detected));
-    }
-    return (input, config);
-  }
+  /// The rule lives in [resolveAutoDetect], shared with the streaming decoder.
+  (String, CsvConfig) _resolve(String input) =>
+      resolveAutoDetect(input, config);
 
   /// Decode CSV string to list of rows.
   List<List<dynamic>> decode(String input) {

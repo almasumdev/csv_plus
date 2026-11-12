@@ -78,6 +78,24 @@ void main() {
         expect(rows[1], [1, 2]);
         expect(rows[2], [3, 4]);
       });
+
+      test('streams a semicolon file the same way read does', () async {
+        for (final text in [
+          'name;age\nAnn;30\nBob;25\n',
+          'sep=;\nname;age\nAnn;30\nBob;25\n',
+        ]) {
+          final path = tempPath('semicolon.csv');
+          await File(path).writeAsString(text);
+          final table = await CsvFile.read(path);
+          final rows = await CsvFile.stream(path).toList();
+          expect(rows, [
+            ['name', 'age'],
+            ['Ann', 30],
+            ['Bob', 25],
+          ]);
+          expect(rows.first, table.headers);
+        }
+      });
     });
 
     group('writeStream', () {
